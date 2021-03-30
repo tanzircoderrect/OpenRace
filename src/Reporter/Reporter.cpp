@@ -11,6 +11,8 @@ limitations under the License.
 
 #include "Reporter.h"
 
+#include <fstream>
+
 #include "llvm/IR/DebugInfoMetadata.h"
 
 using namespace race;
@@ -34,12 +36,24 @@ bool SourceLoc::operator<(const SourceLoc &other) const {
   return col < other.col;
 }
 
+void race::to_json(json &j, const SourceLoc &loc) {
+  j = json{{"filename", loc.filename}, {"dir", loc.directory}, {"line", loc.line}, {"col", loc.col}};
+}
+
 llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const SourceLoc &loc) {
   os << loc.filename << ":" << loc.line << ":" << loc.col;
   return os;
 }
 
 RaceAccess::RaceAccess(const MemAccessEvent *event) : inst(event->getInst()), location(getSourceLoc(event)) {}
+
+void race::to_json(json &j, const RaceAccess &access) {
+  if (access.location.has_value()) {
+    j = access.location.value();
+  } else {
+    llvm_unreachable("The report we serialize to JSON should only include races with valid locations");
+  }
+};
 
 bool RaceAccess::operator==(const RaceAccess &other) const { return location == other.location && inst == other.inst; }
 bool RaceAccess::operator!=(const RaceAccess &other) const { return !(*this == other); }
@@ -67,21 +81,32 @@ llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const RaceAccess &acc
   return os;
 }
 
-void Reporter::collect(const WriteEvent *e1, const MemAccessEvent *e2) { races.emplace_back(std::make_pair(e1, e2)); }
+void race::to_json(json &j, const Race &race) { j = json{{"access1", race.first}, {"access2", race.second}}; };
 
-Report Reporter::getReport() const {
-  Report report;
-  for (auto const &racepair : races) {
+Report::Report(std::vector<std::pair<const WriteEvent *, const MemAccessEvent *>> racepairs) {
+  for (auto const &racepair : racepairs) {
     Race race(racepair.first, racepair.second);
     if (race.missingLocation()) {
       llvm::errs() << "skipping race with unknown location: " << race << "\n";
       continue;
     }
 
-    report.insert(race);
+    races.insert(race);
   }
-  return report;
 }
+
+void Report::dumpReport(const std::string &path) const {
+  std::ofstream output(path, std::ofstream::out);
+  json reportJSON(races);
+  output << reportJSON;
+  output.close();
+}
+
+void Reporter::collect(const WriteEvent *e1, const MemAccessEvent *e2) {
+  racepairs.emplace_back(std::make_pair(e1, e2));
+}
+
+Report Reporter::getReport() const { return Report(racepairs); }
 
 llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const Race &race) {
   os << race.first.location << " " << race.second.location << "\n\t" << *race.first.inst << "\n\t" << *race.second.inst;
