@@ -20,10 +20,13 @@ limitations under the License.
 #include <llvm/ADT/Triple.h>
 #include <llvm/Analysis/GlobalsModRef.h>           // createGlobalsAAWrapperPass
 #include <llvm/Analysis/ScopedNoAliasAA.h>         // createScopedNoAliasAAWrapperPass
+#include <llvm/Analysis/TargetTransformInfo.h>     // TargetIRAnalysis
 #include <llvm/Analysis/TypeBasedAliasAnalysis.h>  // createTypeBasedAAWrapperPass
 #include <llvm/IR/LegacyPassManager.h>             // createForceFunctionAttrsLegacyPass
 #include <llvm/InitializePasses.h>                 // initialize*(PassRegistry) functions
 #include <llvm/PassRegistry.h>                     // legacy Pass stuff
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/TargetRegistry.h>  //TargetRegistry::lookuptraget
 #include <llvm/Transforms/IPO.h>  // createIPSCCPPass, createCalledValuePropagationPass, createGlobalOptimizerPass, createDeadArgEliminationPass, createPruneEHPass, createArgumentPromotionPass
 #include <llvm/Transforms/IPO/AlwaysInliner.h>        // createAlwaysInlinerLegacyPass
 #include <llvm/Transforms/IPO/Attributor.h>           // createAttributorLegacyPass
@@ -36,9 +39,25 @@ limitations under the License.
 #include <llvm/Transforms/Utils.h>               // createEntryExitInstrumenterPass, createCFGSimplificationPass
 #include <llvm/Transforms/Utils/Mem2Reg.h>       // createPromoteMemoryToRegisterPass
 
+// this seems hacky
+#include <llvm/CodeGen/CommandFlags.inc>  // getCPUStr, getFeaturesStr, MArch
+
 #include "PreProcessing/Passes/DuplicateOpenMPForks.h"
 
 namespace {
+
+std::unique_ptr<llvm::TargetMachine> getMachine(llvm::Triple triple) {
+  auto cpu = getCPUStr();
+  auto features = getFeaturesStr();
+  const llvm::TargetOptions options = InitTargetOptionsFromCodeGenFlags();
+  std::string error;
+
+  const llvm::Target *target = TargetRegistry::lookupTarget(MArch, triple, error);
+  if (!target) return nullptr;
+
+  auto machine = target->createTargetMachine(triple.getTriple(), cpu, features, options, None);
+  return std::unique_ptr<llvm::TargetMachine>(machine);
+}
 
 void oldPassPipeline(llvm::Module &module) {
   // Initialize llvm's static PassRegistry
@@ -53,11 +72,20 @@ void oldPassPipeline(llvm::Module &module) {
   llvm::initializeInstrumentation(registry);
   llvm::initializeTarget(registry);
 
-  llvm::Triple ModuleTriple(module.getTargetTriple());
-
   llvm::legacy::PassManager passes;
   llvm::legacy::PassManager prepasses;
   llvm::legacy::FunctionPassManager funcPasses(&module);
+
+  llvm::Triple ModuleTriple(module.getTargetTriple());
+  llvm::TargetLibraryInfoImpl TLI(ModuleTriple);
+  auto machine = getMachine(ModuleTriple);
+
+  passes.add(new llvm::TargetLibraryInfoWrapperPass(TLI));
+  passes.add(
+      llvm::createTargetTransformInfoWrapperPass(machine ? machine->getTargetIRAnalysis() : llvm::TargetIRAnalysis()));
+  funcPasses.add(new llvm::TargetLibraryInfoWrapperPass(TLI));
+  funcPasses.add(
+      llvm::createTargetTransformInfoWrapperPass(machine ? machine->getTargetIRAnalysis() : llvm::TargetIRAnalysis()));
 
   // populateFunctionPassManager
   funcPasses.add(llvm::createEntryExitInstrumenterPass());
@@ -151,6 +179,14 @@ void preprocess(llvm::Module &module) {
   // auto &scev = FAM.getResult<llvm::ScalarEvolutionAnalysis>(*module.getFunction(".omp_outlined._debug__"));
   // scev.print(llvm::outs());
   // scev.getSCEV()
+
+  // oldPassPipeline(module);
+
+  llvm::PassBuilder PB;
+  llvm::FunctionAnalysisManager FAM;
+  PB.registerFunctionAnalyses(FAM);
+  auto &scev = FAM.getResult<llvm::ScalarEvolutionAnalysis>(*module.getFunction(".omp_outlined._debug__"));
+  scev.print(llvm::outs());
 
   duplicateOpenMPForks(module);
 }
