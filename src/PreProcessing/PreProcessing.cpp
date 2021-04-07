@@ -11,6 +11,65 @@ limitations under the License.
 
 #include "PreProcessing/PreProcessing.h"
 
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar/EarlyCSE.h>
+#include <llvm/Transforms/Scalar/IndVarSimplify.h>
+#include <llvm/Transforms/Scalar/LICM.h>
+#include <llvm/Transforms/Scalar/LoopInstSimplify.h>
+#include <llvm/Transforms/Scalar/LoopRotation.h>
+#include <llvm/Transforms/Scalar/LoopSimplifyCFG.h>
+#include <llvm/Transforms/Scalar/MemCpyOptimizer.h>
+#include <llvm/Transforms/Scalar/Reassociate.h>
+#include <llvm/Transforms/Scalar/SCCP.h>
+#include <llvm/Transforms/Scalar/SROA.h>
+#include <llvm/Transforms/Scalar/SimpleLoopUnswitch.h>
+#include <llvm/Transforms/Scalar/SimplifyCFG.h>
+
 #include "PreProcessing/Passes/DuplicateOpenMPForks.h"
 
-void preprocess(llvm::Module &module) { duplicateOpenMPForks(module); }
+void preprocess(llvm::Module &module) {
+  llvm::PassBuilder pb;
+
+  llvm::LoopAnalysisManager lam;
+  llvm::FunctionAnalysisManager fam;
+  llvm::CGSCCAnalysisManager cgam;
+  llvm::ModuleAnalysisManager mam;
+
+  pb.registerModuleAnalyses(mam);
+  pb.registerCGSCCAnalyses(cgam);
+  pb.registerFunctionAnalyses(fam);
+  pb.registerLoopAnalyses(lam);
+  pb.crossRegisterProxies(lam, fam, cgam, mam);
+
+  llvm::FunctionPassManager fpm;
+  fpm.addPass(llvm::EarlyCSEPass(true));
+  fpm.addPass(llvm::SimplifyCFGPass());
+  fpm.addPass(llvm::InstCombinePass());
+  fpm.addPass(llvm::SimplifyCFGPass());
+  fpm.addPass(llvm::ReassociatePass());
+
+  // Loop simplification passes
+  llvm::LoopPassManager lpmPre, lpmPost;
+  lpmPre.addPass(llvm::LoopInstSimplifyPass());
+  lpmPre.addPass(llvm::LoopSimplifyCFGPass());
+  lpmPre.addPass(llvm::LoopRotatePass(true));
+  lpmPre.addPass(llvm::LICMPass());
+  lpmPre.addPass(llvm::SimpleLoopUnswitchPass());
+
+  lpmPost.addPass(llvm::IndVarSimplifyPass());
+
+  fpm.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(lpmPre)));
+  fpm.addPass(llvm::SimplifyCFGPass());
+  fpm.addPass(llvm::InstCombinePass());
+  fpm.addPass(llvm::createFunctionToLoopPassAdaptor(std::move(lpmPost)));
+
+  fpm.addPass(llvm::MemCpyOptPass());
+  fpm.addPass(llvm::SCCPPass());
+
+  llvm::ModulePassManager mpm;
+  mpm.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(fpm)));
+  mpm.run(module, mam);
+
+  duplicateOpenMPForks(module);
+}

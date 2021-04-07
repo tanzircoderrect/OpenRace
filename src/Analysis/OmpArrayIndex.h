@@ -11,19 +11,19 @@ limitations under the License.
 
 #pragma once
 
-#include <llvm/ADT/StringRef.h>
-#include <llvm/IR/Function.h>
+#include <llvm/Passes/PassBuilder.h>
 
-namespace OpenMPModel {
+#include "Trace/Event.h"
 
-inline bool isFork(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_fork_call"); }
-inline bool isFork(const llvm::CallBase* callInst) {
-  if (!callInst) return false;
-  auto const func = callInst->getCalledFunction();
-  if (!func->hasName()) return false;
-  return isFork(func->getName());
-}
-inline bool isForStaticInit(llvm::StringRef& funcName) { return funcName.equals("__kmpc_for_static_init_4"); }
-inline bool isForStaticFini(llvm::StringRef& funcName) { return funcName.equals("__kmpc_for_static_fini"); }
+namespace race {
 
-}  // namespace OpenMPModel
+class OmpArrayIndexAnalysis {
+  llvm::PassBuilder PB;
+  llvm::FunctionAnalysisManager FAM;
+
+ public:
+  OmpArrayIndexAnalysis();
+  bool canIndexOverlap(const race::MemAccessEvent* event1, const race::MemAccessEvent* event2);
+};
+
+}  // namespace race
