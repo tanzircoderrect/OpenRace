@@ -70,6 +70,7 @@ void traverseCallNode(const pta::CallGraphNodeTy *node, const ThreadTrace &threa
 
         if (call->isIndirect()) {
           // TODO: handle indirect
+          llvm::errs() << "Skipping indirect call: " << *call << "\n";
           continue;
         }
 
@@ -83,8 +84,7 @@ void traverseCallNode(const pta::CallGraphNodeTy *node, const ThreadTrace &threa
         }
 
         if (directNode->getTargetFun()->isExtFunction()) {
-          // TODO: LOG skipping external function
-          llvm::errs() << "Skipping external function: " << directNode->getTargetFun()->getName() << "\n";
+          events.push_back(std::make_unique<ExternCallEventImpl>(call, einfo, events.size()));
           continue;
         }
 
@@ -132,9 +132,17 @@ std::vector<const ForkEvent *> ThreadTrace::getForkEvents() const {
   return forks;
 }
 
-void ThreadTrace::print(llvm::raw_ostream &os) const {
-  os << "Thread " << id << "\n";
-  for (auto const &event : events) {
-    event->print(os);
+llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const ThreadTrace &thread) {
+  os << "---Thread" << thread.id;
+  if (thread.spawnEvent.has_value()) {
+    auto const &spawn = thread.spawnEvent.value();
+    os << "  (Spawned by T" << spawn->getThread().id << ":" << spawn->getID() << ")";
   }
+  os << "\n";
+
+  for (auto const &event : thread.getEvents()) {
+    os << *event << "\n";
+  }
+
+  return os;
 }

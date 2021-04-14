@@ -22,7 +22,7 @@ using EventID = size_t;
 
 class Event {
  public:
-  enum class Type { Read, Write, Fork, Join, Lock, Unlock, Call, CallEnd };
+  enum class Type { Read, Write, Fork, Join, Lock, Unlock, Call, CallEnd, ExternCall };
 
   const Type type;
 
@@ -38,12 +38,12 @@ class Event {
   [[nodiscard]] virtual const ThreadTrace &getThread() const = 0;
   [[nodiscard]] virtual const race::IR *getIRInst() const = 0;
   [[nodiscard]] virtual const llvm::Instruction *getInst() const { return getIRInst()->getInst(); }
-  virtual void print(llvm::raw_ostream &os) const = 0;
 
  protected:
   explicit Event(Type type) : type(type) {}
 };
 
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Event &event);
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Event::Type &type);
 
 class MemAccessEvent : public Event {
@@ -67,8 +67,6 @@ class ReadEvent : public MemAccessEvent {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Read; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
 
 class WriteEvent : public MemAccessEvent {
@@ -80,8 +78,6 @@ class WriteEvent : public MemAccessEvent {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Write; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
 
 class ForkEvent : public Event {
@@ -96,8 +92,6 @@ class ForkEvent : public Event {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Fork; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
 
 class JoinEvent : public Event {
@@ -108,8 +102,6 @@ class JoinEvent : public Event {
   [[nodiscard]] virtual std::vector<const pta::ObjTy *> getThreadHandle() const = 0;
 
   [[nodiscard]] inline const race::JoinIR *getIRInst() const override = 0;
-
-  void print(llvm::raw_ostream &os) const override;
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Join; }
@@ -125,8 +117,6 @@ class LockEvent : public Event {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Lock; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
 
 class UnlockEvent : public Event {
@@ -139,8 +129,6 @@ class UnlockEvent : public Event {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Unlock; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
 
 class EnterCallEvent : public Event {
@@ -153,8 +141,6 @@ class EnterCallEvent : public Event {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Call; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
 
 class LeaveCallEvent : public Event {
@@ -167,35 +153,26 @@ class LeaveCallEvent : public Event {
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::CallEnd; }
-
-  void print(llvm::raw_ostream &os) const override;
 };
+
+class ExternCallEvent : public Event {
+ protected:
+  ExternCallEvent() : Event(Type::ExternCall) {}
+
+ public:
+  [[nodiscard]] const race::CallIR *getIRInst() const override = 0;
+  [[nodiscard]] virtual const llvm::Function *getCalledFunction() const = 0;
+
+  // Return name of called function if it has one
+  [[nodiscard]] inline std::optional<llvm::StringRef> getCalledName() const {
+    if (getCalledFunction() && getCalledFunction()->hasName()) {
+      return getCalledFunction()->getName();
+    }
+    return std::nullopt;
+  }
+
+  // Used for llvm style RTTI (isa, dyn_cast, etc.)
+  [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::ExternCall; }
+};
+
 }  // namespace race
-
-// enum class TEventType { Read, Write, Fork, Join, Call, CallEnd };
-// template <class Inst, TEventType Type>
-// class TEvent {
-//  public:
-//   const TEventType type;
-//   const std::shared_ptr<EventInfo> info;
-//   const std::shared_ptr<Inst> irInst;
-
-//   TEvent() = delete;
-//   virtual ~Event() = default;
-//   TEvent(TEvent &&) = delete;
-//   TEvent(const TEvent &) = delete;
-//   TEvent &operator=(const TEvent &) = delete;
-//   TEvent &operator=(TEvent &&) = delete;
-
-//   const llvm::Instruction *getInst() const { return irInst->getInst(); }
-
-//   virtual void print(llvm::raw_ostream &os) const = 0;
-
-//   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-//   virtual static inline bool classof(const Event *e) { return e->type ==
-//   Type; }
-
-//  protected:
-//   TEvent(std::shared_ptr<Inst> inst, std::shared_ptr<EventInfo> einfo)
-//       : type(Type), info(einfo), irInst(inst) {}
-// };

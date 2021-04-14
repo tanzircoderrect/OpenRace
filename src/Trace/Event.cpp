@@ -13,6 +13,11 @@ limitations under the License.
 
 using namespace race;
 
+llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const Event &event) {
+  os << event.getID() << " " << event.type << "\t" << *event.getInst();
+  return os;
+}
+
 llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const Event::Type &type) {
   switch (type) {
     case Event::Type::Read:
@@ -39,45 +44,13 @@ llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const Event::Type &ty
     case Event::Type::CallEnd:
       os << "EndCall";
       break;
+    case Event::Type::ExternCall:
+      os << "ExternCall";
+      break;
+    default:
+      llvm_unreachable("Did you forget to update Event::Type operator<< ?");
   }
 
   return os;
 }
 
-void ReadEvent::print(llvm::raw_ostream &os) const {
-  // TODO
-  os << "Event: READ\n";
-}
-
-void WriteEvent::print(llvm::raw_ostream &os) const {
-  // TODO
-  os << "Event: Write\n";
-}
-
-void ForkEvent::print(llvm::raw_ostream &os) const {
-  // TODO
-  os << "Event: Fork\n";
-}
-
-void JoinEvent::print(llvm::raw_ostream &os) const {
-  // TODO
-  os << "Event: JOIN\n";
-}
-
-void EnterCallEvent::print(llvm::raw_ostream &os) const {
-  // TODO
-  os << "Event: EnterCall\n";
-}
-
-void LeaveCallEvent::print(llvm::raw_ostream &os) const {
-  // TODO
-  os << "Event: LeaveCall\n";
-}
-void LockEvent::print(raw_ostream &os) const {
-  // TODO
-  os << "Event: Lock\n";
-}
-void UnlockEvent::print(raw_ostream &os) const {
-  // TODO
-  os << "Event: Unlock\n";
-}

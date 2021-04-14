@@ -13,17 +13,13 @@ limitations under the License.
 
 #include "Analysis/HappensBeforeGraph.h"
 #include "Analysis/LockSet.h"
+#include "Analysis/OmpArrayIndex.h"
 #include "Analysis/SharedMemory.h"
 #include "LanguageModel/RaceModel.h"
 #include "PreProcessing/PreProcessing.h"
 #include "Trace/ProgramTrace.h"
 
 using namespace race;
-
-bool isRace(const race::WriteEvent *write, const race::MemAccessEvent *other, const HappensBeforeGraph &happensbefore,
-            const LockSet &lockset) {
-  return happensbefore.areParallel(write, other) && !lockset.sharesLock(write, other);
-}
 
 Report race::detectRaces(llvm::Module *module) {
   race::Reporter reporter;
@@ -32,6 +28,21 @@ Report race::detectRaces(llvm::Module *module) {
   race::SharedMemory sharedmem(program);
   race::HappensBeforeGraph happensbefore(program);
   race::LockSet lockset(program);
+  race::OmpArrayIndexAnalysis ompAnalysis;
+
+  // Adds to report if race is detected between write and other
+  auto checkRace = [&](const race::WriteEvent *write, const race::MemAccessEvent *other) {
+    if (!happensbefore.areParallel(write, other) || lockset.sharesLock(write, other)) {
+      return;
+    }
+
+    if (ompAnalysis.isOmpLoopArrayAccess(write, other) && !ompAnalysis.canIndexOverlap(write, other)) {
+      return;
+    }
+
+    // Race detected
+    reporter.collect(write, other);
+  };
 
   for (auto const sharedObj : sharedmem.getSharedObjects()) {
     auto threadedWrites = sharedmem.getThreadedWrites(sharedObj);
@@ -45,9 +56,7 @@ Report race::detectRaces(llvm::Module *module) {
         if (wtid == rtid) continue;
         for (auto write : writes) {
           for (auto read : reads) {
-            if (isRace(write, read, happensbefore, lockset)) {
-              reporter.collect(write, read);
-            }
+            checkRace(write, read);
           }
         }
       }
@@ -57,9 +66,7 @@ Report race::detectRaces(llvm::Module *module) {
         auto otherWrites = wit->second;
         for (auto write : writes) {
           for (auto otherWrite : otherWrites) {
-            if (isRace(write, otherWrite, happensbefore, lockset)) {
-              reporter.collect(write, otherWrite);
-            }
+            checkRace(write, otherWrite);
           }
         }
       }
