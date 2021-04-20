@@ -18,12 +18,21 @@ limitations under the License.
 
 namespace race {
 
-class OmpArrayIndexAnalysis {
+struct Region {
+  EventID start;
+  EventID end;
+
+  Region(EventID start, EventID end) : start(start), end(end) {}
+
+  inline bool contains(EventID e) const { return end >= e && e >= start; }
+};
+
+class OpenMPAnalysis {
   llvm::PassBuilder PB;
   llvm::FunctionAnalysisManager FAM;
 
   // Start/End of omp loop
-  using LoopRegion = std::pair<EventID, EventID>;
+  using LoopRegion = Region;
 
   // per-thread map of omp for loop regions
   std::map<ThreadID, std::vector<LoopRegion>> ompForLoops;
@@ -31,16 +40,23 @@ class OmpArrayIndexAnalysis {
   // get cached list of loop regions, else create them
   const std::vector<LoopRegion>& getOmpForLoops(const ThreadTrace& trace);
 
-  bool isInOmpFor(const race::MemAccessEvent* event);
+  bool inParallelFor(const race::MemAccessEvent* event);
 
  public:
-  OmpArrayIndexAnalysis();
+  OpenMPAnalysis();
 
   // return true if events are array accesses who's access sets could overlap
   bool canIndexOverlap(const race::MemAccessEvent* event1, const race::MemAccessEvent* event2);
 
   // return true if both events are array accesses in an omp loop
-  bool isOmpLoopArrayAccess(const race::MemAccessEvent* event1, const race::MemAccessEvent* event2);
+  bool isLoopArrayAccess(const race::MemAccessEvent* event1, const race::MemAccessEvent* event2);
+
+  // return true if both events are part of the same omp team
+  bool inSameTeam(const Event* event1, const Event* event2) const;
+
+  // return true if both events are in the same single region
+  // Call assumes the events are on different threads but in the same team
+  bool inSameSingleBlock(const Event* event1, const Event* event2) const;
 };
 
 }  // namespace race
