@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef PTA_CANONICALIZEGEPPASS_H
 #define PTA_CANONICALIZEGEPPASS_H
 
-#include <llvm/Pass.h>
+#include <llvm/IR/PassManager.h>
 
 // TO canoicalize GEP instruction (required only by Field-Sensitive Pointer
 // Analysis)
@@ -30,7 +30,7 @@ limitations under the License.
 // 2nd, split getelementptr that uses variable to index
 // e.g.,
 // %gep = getelementptr %base, 0, 0, %v1, 2, 3, %v2
-// will be splitted into
+// will be split into
 // %gep1 = getelementptr %base, 0, 0;
 // %gep2 = getelementptr %gep1, 0, %v1;
 // %gep3 = getelementptr %gep2, 0, 2, 3;
@@ -39,13 +39,19 @@ limitations under the License.
 // 3rd, for every uses of inline asm
 // change it to undef value
 
-class CanonicalizeGEPPass : public llvm::FunctionPass {
+class CanonicalizeGEPPass : public llvm::PassInfoMixin<CanonicalizeGEPPass> {
+ public:
+  llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &FAM);
+  static bool isRequired() { return true; }
+};
+
+// Only used by old pointer analysis test
+class LegacyCanonicalizeGEPPass : public llvm::FunctionPass {
  public:
   static char ID;
-  explicit CanonicalizeGEPPass() : llvm::FunctionPass(ID) {}
+  explicit LegacyCanonicalizeGEPPass() : llvm::FunctionPass(ID) {}
 
   bool runOnFunction(llvm::Function &F) override;
-  bool doInitialization(llvm::Module &M) override;
 };
 
 #endif
