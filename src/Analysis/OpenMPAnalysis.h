@@ -27,9 +27,28 @@ struct Region {
   inline bool contains(EventID e) const { return end >= e && e >= start; }
 };
 
+class ReduceAnalysis {
+  using ReduceInst = const llvm::Instruction*;
+
+  // cached map of reduce instructions to the blocks that make up the reduction code
+  mutable std::map<ReduceInst, std::vector<const llvm::BasicBlock*>> reduceBlocks;
+
+  // Compute list of blocks, insert into reduceBlocks cache, and return
+  std::vector<const llvm::BasicBlock*>& computeGuardedBlocks(ReduceInst reduce) const;
+
+  // list of blocks guarded by a reduce. Check cache first, else compute and store in cache
+  const std::vector<const llvm::BasicBlock*>& getReduceBlocks(ReduceInst reduce) const;
+
+ public:
+  // return true if inst is inside of code blocks making up belonging to reduce
+  bool reduceContains(const llvm::Instruction* reduce, const llvm::Instruction* inst) const;
+};
+
 class OpenMPAnalysis {
   llvm::PassBuilder PB;
   llvm::FunctionAnalysisManager FAM;
+
+  ReduceAnalysis reduceAnalysis;
 
   // Start/End of omp loop
   using LoopRegion = Region;
@@ -57,6 +76,10 @@ class OpenMPAnalysis {
   // return true if both events are in the same single region
   // Call assumes the events are on different threads but in the same team
   bool inSameSingleBlock(const Event* event1, const Event* event2) const;
+
+  // return true if both events are inside of the same reduce region
+  // we do not distinguise between reduce and reduce_nowait
+  bool inSameReduce(const Event* event1, const Event* event2) const;
 };
 
 }  // namespace race

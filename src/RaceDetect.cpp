@@ -49,11 +49,17 @@ Report race::detectRaces(llvm::Module *module, DetectRaceConfig config) {
     }
 
     if (ompAnalysis.inSameTeam(write, other)) {
+      // Non overlapping array accesses inside of an OpenMP loop are not races
+      // e.g.
+      //  #pragma omp parallel for shared(A)
+      //  for (int i = 0; i < N: i++) { A[i] = i; }
+      // even though A is shared, each index is unique so there is no race
       if (ompAnalysis.isLoopArrayAccess(write, other) && !ompAnalysis.canIndexOverlap(write, other)) {
         return;
       }
 
-      if (ompAnalysis.inSameSingleBlock(write, other)) {
+      // Certain omp blocks cannot race with themselves
+      if (ompAnalysis.inSameSingleBlock(write, other) || ompAnalysis.inSameReduce(write, other)) {
         return;
       }
     }

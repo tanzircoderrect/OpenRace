@@ -90,9 +90,8 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       Oracle("DRB060-matrixmultiply-orig-no.ll", {}), Oracle("DRB061-matrixvector1-orig-no.ll", {}),
       // 62 reduction
       // 63-64 FP by multi-dimen array
-      // 65 reduce
-      Oracle("DRB066-pointernoaliasing-orig-no.ll", {}), Oracle("DRB067-restrictpointer1-orig-no.ll", {}),
-      Oracle("DRB068-restrictpointer2-orig-no.ll", {}),
+      Oracle("DRB065-pireduction-orig-no.ll", {}), Oracle("DRB066-pointernoaliasing-orig-no.ll", {}),
+      Oracle("DRB067-restrictpointer1-orig-no.ll", {}), Oracle("DRB068-restrictpointer2-orig-no.ll", {}),
       // 69 section and locks
       // 70 simd
       // 71 target
@@ -100,8 +99,7 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 73 Broken Debug Info
       // 74 critical and flush
       // 75 path based on get_thread_num
-      // 76 reduce
-      Oracle("DRB077-single-orig-no.ll", {}),
+      Oracle("DRB076-flush-orig-no.ll", {}), Oracle("DRB077-single-orig-no.ll", {}),
       // 78-79 task
       Oracle("DRB080-func-arg-orig-yes.ll",
              {"DRB080-func-arg-orig-yes.c:59:6 DRB080-func-arg-orig-yes.c:59:6",    // read-write
@@ -145,8 +143,7 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 116 target
       // 117 task
       // 118-119 nest lock
-      Oracle("DRB120-barrier-orig-no.ll", {}),
-      // 121 reduction
+      Oracle("DRB120-barrier-orig-no.ll", {}), Oracle("DRB121-reduction-orig-no.ll", {}),
       // 122-123 task
       // 124 master
       Oracle("DRB125-single-orig-no.ll", {}),
@@ -154,7 +151,7 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 127-136 task
       // 137-138 simd
       // 139 section + critical
-      // 140-141 reduction
+      // 140-141 master
       // 142-143 critical
       // 144-164 target
       // 165-168 cannot be built

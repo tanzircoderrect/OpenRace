@@ -15,6 +15,7 @@ add_executable(tester
     
     integration/pthreadrace.test.cpp
     integration/dataracebench.test.cpp
+    integration/openmp.test.cpp
 
     regression/EmptyThread.test.cpp
 
