@@ -3,7 +3,7 @@ project(OpenRace
     VERSION 0.0.1
     LANGUAGES CXX)
 
-if(NOT ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
   message(WARNING "conanbuildinfo.cmake not found; attempting generation...")
 
   if(UNIX)
