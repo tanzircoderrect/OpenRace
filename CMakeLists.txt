@@ -11,8 +11,10 @@ endif()
 
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 
-conan_cmake_run(REQUIRES catch2/2.13.4 nlohmann_json/3.9.1
-                BASIC_SETUP CMAKE_TARGETS)
+conan_cmake_run(REQUIRES catch2/2.13.4
+                         nlohmann_json/3.9.1
+                BASIC_SETUP
+                CMAKE_TARGETS)
 
 list(APPEND CMAKE_PREFIX_PATH ${LLVM_DIR})
 find_package(LLVM 10.0.1 REQUIRED CONFIG)

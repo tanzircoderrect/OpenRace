@@ -98,7 +98,6 @@ cmake \
     -DLLVM_APPEND_VC_REV=OFF \
     -DLLVM_OPTIMIZED_TABLEGEN=ON \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_ENABLE_PROJECTS=clang \
     -G Ninja \
     ../llvm
 # Build and Install
@@ -120,14 +119,10 @@ OpenRace is also using C++17
 Builds LLVM in Release mode; use Debug instead to make debugging easier
 - `-G Ninja`  
 Building using Ninja Build
-- `-DLLVM_ENABLE_PROJECTS=clang`
-Building clang for compilation consistency and for conan configuration; **you should drop this flag if you need to build in Debug mode**
 
 The rest are just some options set to save time/space when building.
 
 You may also wish to additionally add `-DCMAKE_INSTALL_PREFIX="/some/other/prefix"` to install to a specific location, such as `$HOME/.local`.
-
-For the next steps, please ensure that you have the built `clang` as the default used by your system by prepending it to your `PATH` variable.
 
 
 ## Building OpenRace
@@ -145,7 +140,6 @@ cmake \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_BUILD_TYPE=Debug \
     -DLLVM_DIR=$LLVM_DIR \
-    -DCMAKE_CXX_COMPILER=$(which clang) \
     -G Ninja \
     ..
 # Build OpenRace
@@ -161,8 +155,6 @@ The cmake options do the following:
  Builds the project in debug mode. This makes it is easier to debug if/when issues occur.
  - `LLVM_DIR=$LLVM_DIR`  
  Should point to a directory containing `LLVMConfig.cmake`. See the "Install LLVM 10.0.X" section above.
- - `CMAKE_CXX_COMPILER=$(which clang)`
- Should point to the `clang` built in the previous step. See the "Install LLVM 10.0.X" section above.
 
 
 ## Running Tests
