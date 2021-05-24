@@ -91,7 +91,7 @@ class MemAccessIR : public IR {
 
  protected:
   explicit MemAccessIR(Type t) : IR(t) {
-    assert(t >= Type::Read || t <= Type::END_Write && "MemAccess constructed with non read/write type!");
+    assert(t >= Type::Read && t <= Type::END_Write && "MemAccess constructed with non read/write type!");
   }
 };
 
