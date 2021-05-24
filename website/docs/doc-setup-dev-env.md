@@ -23,9 +23,9 @@ Most systems should already have gcc installed, but just in case, these commands
 
 ```shell
 # Update packages 
-apt-get update
+sudo apt update
 # Install gcc and ninja
-apt-get install -y build-essential ninja-build
+sudo apt install -y build-essential ninja-build
 # Check that gcc is installed
 gcc --version
 ```
@@ -66,15 +66,21 @@ In either case, LLVM will include a file named `LLVMConfig.cmake`. You will need
 
 In this guide we save it into the `LLVM_DIR` environment variable.
 
+<!--
+
 #### Package Manager
+
+This section is unstable and does not build the codebase as of 05/24/2021.
 
 ```shell
 # Install LLVM 10
-apt-get update
-apt install -y llvm-10
+sudo apt update
+sudo apt install -y llvm-10
 # Save location of LLVMConfig.cmake
 export LLVM_DIR=/usr/lib/llvm-10/lib/cmake/llvm/
 ```
+
+-->
 
 #### From Source
 
@@ -83,7 +89,7 @@ export LLVM_DIR=/usr/lib/llvm-10/lib/cmake/llvm/
 git clone --depth 1 -b llvmorg-10.0.1 https://github.com/llvm/llvm-project.git
 mkdir -p llvm-project/build && cd llvm-project/build
 # Configure the build with CMake
-cmake
+cmake \
     -DLLVM_TARGETS_TO_BUILD="X86" \
     -DCMAKE_CXX_STANDARD="17" \
     -DLLVM_INCLUDE_EXAMPLES=OFF \
@@ -92,6 +98,7 @@ cmake
     -DLLVM_APPEND_VC_REV=OFF \
     -DLLVM_OPTIMIZED_TABLEGEN=ON \
     -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_ENABLE_PROJECTS=clang \
     -G Ninja \
     ../llvm
 # Build and Install
@@ -99,6 +106,7 @@ cmake --build . --parallel
 cmake --build . --target install
 # Save location of LLVMConfig.cmake
 export LLVM_DIR=$(pwd)/
+# if using a custom prefix, set LLVM_DIR to ${prefix}/lib/cmake/llvm
 ```
 
 There are a lot of CMake options to customize the LLVM build. See [LLVM's page on CMake](https://www.llvm.org/docs/CMake.html) for more options.
@@ -108,29 +116,36 @@ The important ones used above are:
 We only build for the X86 platform to save time
 - `CMAKE_CXX_STANDARD="17"`  
 OpenRace is also using C++17
-- `CMAKE_BUILD_TYPE=Debug`  
-Builds LLVM in Debug mode to make debugging easier
+- `CMAKE_BUILD_TYPE=Release`  
+Builds LLVM in Release mode; use Debug instead to make debugging easier
 - `-G Ninja`  
 Building using Ninja Build
+- `-DLLVM_ENABLE_PROJECTS=clang`
+Building clang for compilation consistency and for conan configuration; **you should drop this flag if you need to build in Debug mode**
 
 The rest are just some options set to save time/space when building.
+
+You may also wish to additionally add `-DCMAKE_INSTALL_PREFIX="/some/other/prefix"` to install to a specific location, such as `$HOME/.local`.
+
+For the next steps, please ensure that you have the built `clang` as the default used by your system by prepending it to your `PATH` variable.
 
 
 ## Building OpenRace
 
-The recommended method of building the project for development is
+If your IDE natively supports CMake, you simply need to point it at CMakeLists.txt and it should Just Work™.
+
+As a backup, you may also build from the shell using the following:
 
 ```shell
 # Get the source code
 git clone https://github.com/coderrect-inc/OpenRace.git
 mkdir build && cd build
-# Let conan build dependencies
-conan install ..
 # Configure build with cmake
 cmake \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_BUILD_TYPE=Debug \
     -DLLVM_DIR=$LLVM_DIR \
+    -DCMAKE_CXX_COMPILER=$(which clang) \
     -G Ninja \
     ..
 # Build OpenRace
@@ -141,11 +156,14 @@ cmake --build . --parallel
 
 The cmake options do the following:
  - `CMAKE_EXPORT_COMPILE_COMMANDS=ON`  
- produces a `compile_commands.json` file in the build directory. Most IDEs can be set up to use this file for neat IDE features.
+ Produces a `compile_commands.json` file in the build directory. Most IDEs can be set up to use this file for neat IDE features.
  - `CMAKE_BUILD_TYPE=Debug`  
  Builds the project in debug mode. This makes it is easier to debug if/when issues occur.
  - `LLVM_DIR=$LLVM_DIR`  
  Should point to a directory containing `LLVMConfig.cmake`. See the "Install LLVM 10.0.X" section above.
+ - `CMAKE_CXX_COMPILER=$(which clang)`
+ Should point to the `clang` built in the previous step. See the "Install LLVM 10.0.X" section above.
+
 
 ## Running Tests
 
