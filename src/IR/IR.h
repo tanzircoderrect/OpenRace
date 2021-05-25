@@ -216,7 +216,7 @@ class BlockIR : public IR {
   [[nodiscard]] inline const llvm::BasicBlock *getLLVMRepr() const override { return block; }
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static bool classof(const IR *e) { return e->type >= Type::Call && e->type < Type::END_Call; }
+  static bool classof(const IR *e) { return e->type >= Type::Block && e->type < Type::END_Block; }
 };
 
 // CallIR is one of the classes in IR.h that can be concrete.
