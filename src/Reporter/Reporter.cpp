@@ -20,8 +20,16 @@ using namespace race;
 namespace {
 
 std::optional<SourceLoc> getSourceLoc(const Event *e) {
-  auto const &loc = e->getInst()->getDebugLoc();
-  if (auto diloc = loc.get()) {
+  const DILocation *diloc;
+  if (auto inst = llvm::dyn_cast<llvm::Instruction>(e->getLLVMRepr())) {
+    diloc = inst->getDebugLoc().get();
+  } else if (auto block = llvm::dyn_cast<llvm::BasicBlock>(e->getLLVMRepr())) {
+    diloc = block->getInstList().front().getDebugLoc().get();
+  } else {
+    return std::nullopt;
+  }
+
+  if (diloc) {
     return SourceLoc(diloc);
   }
 
@@ -46,7 +54,7 @@ llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const SourceLoc &loc)
 }
 
 RaceAccess::RaceAccess(const MemAccessEvent *event)
-    : inst(event->getInst()), location(getSourceLoc(event)), type(event->type) {}
+    : inst(event->getLLVMRepr()), location(getSourceLoc(event)), type(event->type) {}
 
 void race::to_json(json &j, const RaceAccess &access) {
   if (access.location.has_value()) {

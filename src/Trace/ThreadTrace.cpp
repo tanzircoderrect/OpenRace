@@ -64,12 +64,12 @@ void traverseCallNode(const pta::CallGraphNodeTy *node, const ThreadTrace &threa
         continue;
       }
 
-      auto directContext = pta::CT::contextEvolve(context, ir->getInst());
-      auto const directNode = pta.getDirectNodeOrNull(directContext, call->getInst()->getCalledFunction());
+      auto directContext = pta::CT::contextEvolve(context, call->getLLVMRepr());
+      auto const directNode = pta.getDirectNodeOrNull(directContext, call->getLLVMRepr()->getCalledFunction());
 
       if (directNode == nullptr) {
         // TODO: LOG unable to get child node
-        llvm::errs() << "Unable to get child node: " << call->getInst()->getCalledFunction()->getName() << "\n";
+        llvm::errs() << "Unable to get child node: " << call->getLLVMRepr()->getCalledFunction()->getName() << "\n";
         continue;
       }
 

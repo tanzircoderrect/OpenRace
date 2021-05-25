@@ -38,7 +38,7 @@ class PthreadCreateInfo : public ForkInfo {
 public:
     explicit PthreadCreateInfo(const llvm::CallBase *inst) : inst(inst) {}
 
-    [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+    [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
     [[nodiscard]] const llvm::Value *getThreadHandle() const override {
         return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();

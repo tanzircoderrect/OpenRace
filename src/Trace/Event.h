@@ -37,7 +37,7 @@ class Event {
   [[nodiscard]] virtual const pta::ctx *getContext() const = 0;
   [[nodiscard]] virtual const ThreadTrace &getThread() const = 0;
   [[nodiscard]] virtual const race::IR *getIRInst() const = 0;
-  [[nodiscard]] virtual const llvm::Instruction *getInst() const { return getIRInst()->getInst(); }
+  [[nodiscard]] virtual const llvm::Value *getLLVMRepr() const { return getIRInst()->getLLVMRepr(); }
 
  protected:
   explicit Event(Type type) : type(type) {}
@@ -46,9 +46,18 @@ class Event {
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Event &event);
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Event::Type &type);
 
-class MemAccessEvent : public Event {
+class InstEvent : public Event {
  protected:
   using Event::Event;
+
+ public:
+  [[nodiscard]] const InstIR *getIRInst() const override = 0;
+  [[nodiscard]] const llvm::Instruction *getLLVMRepr() const override { return getIRInst()->getLLVMRepr(); }
+};
+
+class MemAccessEvent : public InstEvent {
+ protected:
+  using InstEvent::InstEvent;
 
  public:
   [[nodiscard]] const race::MemAccessIR *getIRInst() const override = 0;
@@ -80,9 +89,9 @@ class WriteEvent : public MemAccessEvent {
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Write; }
 };
 
-class ForkEvent : public Event {
+class ForkEvent : public InstEvent {
  protected:
-  ForkEvent() : Event(Type::Fork) {}
+  ForkEvent() : InstEvent(Type::Fork) {}
 
  public:
   [[nodiscard]] virtual std::vector<const pta::ObjTy *> getThreadHandle() const = 0;
@@ -94,9 +103,9 @@ class ForkEvent : public Event {
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Fork; }
 };
 
-class JoinEvent : public Event {
+class JoinEvent : public InstEvent {
  protected:
-  JoinEvent() : Event(Type::Join) {}
+  JoinEvent() : InstEvent(Type::Join) {}
 
  public:
   [[nodiscard]] virtual std::vector<const pta::ObjTy *> getThreadHandle() const = 0;
@@ -107,9 +116,9 @@ class JoinEvent : public Event {
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Join; }
 };
 
-class LockEvent : public Event {
+class LockEvent : public InstEvent {
  protected:
-  LockEvent() : Event(Type::Lock) {}
+  LockEvent() : InstEvent(Type::Lock) {}
 
  public:
   [[nodiscard]] const race::LockIR *getIRInst() const override = 0;
@@ -119,9 +128,9 @@ class LockEvent : public Event {
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Lock; }
 };
 
-class UnlockEvent : public Event {
+class UnlockEvent : public InstEvent {
  protected:
-  UnlockEvent() : Event(Type::Unlock) {}
+  UnlockEvent() : InstEvent(Type::Unlock) {}
 
  public:
   [[nodiscard]] const race::UnlockIR *getIRInst() const override = 0;
@@ -131,9 +140,9 @@ class UnlockEvent : public Event {
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Unlock; }
 };
 
-class BarrierEvent : public Event {
+class BarrierEvent : public InstEvent {
  protected:
-  BarrierEvent() : Event(Type::Barrier) {}
+  BarrierEvent() : InstEvent(Type::Barrier) {}
 
  public:
   [[nodiscard]] const race::BarrierIR *getIRInst() const override = 0;
@@ -142,9 +151,9 @@ class BarrierEvent : public Event {
   [[nodiscard]] static inline bool classof(const Event *e) { return e->type == Type::Barrier; }
 };
 
-class EnterCallEvent : public Event {
+class EnterCallEvent : public InstEvent {
  protected:
-  EnterCallEvent() : Event(Type::Call) {}
+  EnterCallEvent() : InstEvent(Type::Call) {}
 
  public:
   [[nodiscard]] const race::CallIR *getIRInst() const override = 0;

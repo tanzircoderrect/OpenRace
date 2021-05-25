@@ -37,8 +37,8 @@ TEST_CASE("Manually Constructed IR", "[unit][IR]") {
     auto loadInst = IRB.CreateLoad(IRB.getInt32Ty(), alloca);
 
     auto load = std::make_unique<race::Load>(loadInst);
-    REQUIRE(load->getInst() == loadInst);
-    REQUIRE(llvm::isa<llvm::LoadInst>(load->getInst()));
+    REQUIRE(load->getLLVMRepr() == loadInst);
+    REQUIRE(llvm::isa<llvm::LoadInst>(load->getLLVMRepr()));
     REQUIRE(load->getAccessedValue() == loadInst->getPointerOperand());
     REQUIRE(llvm::isa<race::ReadIR>(load));
     REQUIRE(llvm::isa<race::MemAccessIR>(load));
@@ -50,8 +50,8 @@ TEST_CASE("Manually Constructed IR", "[unit][IR]") {
     auto storeInst = IRB.CreateStore(val, alloca);
 
     auto store = std::make_unique<race::Store>(storeInst);
-    REQUIRE(store->getInst() == storeInst);
-    REQUIRE(llvm::isa<llvm::StoreInst>(store->getInst()));
+    REQUIRE(store->getLLVMRepr() == storeInst);
+    REQUIRE(llvm::isa<llvm::StoreInst>(store->getLLVMRepr()));
     REQUIRE(store->getAccessedValue() == storeInst->getPointerOperand());
     REQUIRE(llvm::isa<race::WriteIR>(store));
     REQUIRE(llvm::isa<race::MemAccessIR>(store));
@@ -62,8 +62,8 @@ TEST_CASE("Manually Constructed IR", "[unit][IR]") {
     REQUIRE(callInst != nullptr);
 
     auto call = std::make_unique<race::CallIR>(callInst);
-    REQUIRE(call->getInst() == callInst);
-    REQUIRE(llvm::isa<llvm::CallBase>(call->getInst()));
+    REQUIRE(call->getLLVMRepr() == callInst);
+    REQUIRE(llvm::isa<llvm::CallBase>(call->getLLVMRepr()));
     REQUIRE(llvm::isa<race::CallIR>(call));
   }
 }
@@ -101,7 +101,7 @@ define void @foo(i32* %x) {
 
   auto externcall = llvm::dyn_cast<race::CallIR>(racefunc.at(1).get());
   REQUIRE(externcall);
-  REQUIRE(externcall->getInst()->getCalledFunction()->getName() == "bar");
+  REQUIRE(externcall->getLLVMRepr()->getCalledFunction()->getName() == "bar");
 
   auto write = llvm::dyn_cast<race::WriteIR>(racefunc.at(2).get());
   REQUIRE(write);
@@ -109,7 +109,7 @@ define void @foo(i32* %x) {
 
   auto call = llvm::dyn_cast<race::CallIR>(racefunc.at(3).get());
   REQUIRE(call);
-  REQUIRE(call->getInst()->getCalledFunction()->getName() == "hello");
+  REQUIRE(call->getLLVMRepr()->getCalledFunction()->getName() == "hello");
 }
 
 TEST_CASE("Builder pthread create/join", "[unit][IR]") {

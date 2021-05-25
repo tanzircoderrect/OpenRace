@@ -131,13 +131,13 @@ const ForkEvent *getCorrespondingFork(const JoinEvent *join, const ProgramTrace 
   for (auto it = forks.rbegin(), rend = forks.rend(); it != rend; ++it) {
     auto const fork = *it;
     if (fork->getID() < join->getID()) {
-      llvm::errs() << "Using nearest fork heuristic to find corresponding fork!\n\tJoin: " << *join->getInst()
-                   << "\n\tFork: " << *fork->getInst() << "\n";
+      llvm::errs() << "Using nearest fork heuristic to find corresponding fork!\n\tJoin: " << *join->getLLVMRepr()
+                   << "\n\tFork: " << *fork->getLLVMRepr() << "\n";
       return fork;
     }
   }
 
-  llvm::errs() << "Unable to find corresponding fork for join event: " << *join->getInst() << "\n";
+  llvm::errs() << "Unable to find corresponding fork for join event: " << *join->getLLVMRepr() << "\n";
   return nullptr;
 }
 
@@ -164,9 +164,9 @@ HappensBeforeGraph::HappensBeforeGraph(const race::ProgramTrace &program) {
   // the dual-edge is added between the prev event and the current event,
   // and the current event is added to the map so that the next event to reach
   // this barrier will add the dual-edge with the curent event.
-  std::map<const llvm::Instruction *, const BarrierEvent *> lastBarrier;
+  std::map<const llvm::Value *, const BarrierEvent *> lastBarrier;
   auto addBarrierEdge = [&lastBarrier, this](const BarrierEvent *event) {
-    auto const barrierInst = event->getInst();
+    auto const barrierInst = event->getLLVMRepr();
 
     auto it = lastBarrier.find(barrierInst);
     if (it != lastBarrier.end()) {

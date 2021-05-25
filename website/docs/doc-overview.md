@@ -154,7 +154,7 @@ So, the interface for a logical read operation looks something like the followin
 ```cpp
 class Read {
 public:
-    virtual const llvm::Inst* getInst() const =  0;
+    virtual const llvm::Instruction* getLLVMRepr() const = 0;
     virtual const llvm::Value *getReadValue() const = 0;
 };
 ```
@@ -167,14 +167,14 @@ Now to treat different types of llvm instructions as reads, we just need to defi
 class Load : public Read {
     const LoadInst *load;
 public:
-    const llvm::LoadInst* getInst() const override { return load; }
+    const llvm::LoadInst* getLLVMRepr() const override { return load; }
     const llvm::Value *getReadValue() const override { return load->getPointerOperand(); }
 };
 
 class MemCpyRead : public Read {
     const CallBase *inst;
 public:
-    const llvm::LoaCallBasedInst* getInst() const override { return inst; }
+    const llvm::LoadCallBasedInst* getLLVMRepr() const override { return inst; }
 
     // Assuming 3rd operand is the value being read. This is a fake example
     const llvm::Value *getReadValue() const override { return load->getOperand(3); }

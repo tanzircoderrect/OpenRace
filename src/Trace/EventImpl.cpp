@@ -31,13 +31,13 @@ std::vector<const pta::ObjTy *> WriteEventImpl::getAccessedMemory() const {
 std::vector<const pta::CallGraphNodeTy *> ForkEventImpl::getThreadEntry() const {
   auto entryVal = fork->getThreadEntry();
   if (auto entryFunc = llvm::dyn_cast<llvm::Function>(entryVal)) {
-    auto const newContext = pta::CT::contextEvolve(info->context, fork->getInst());
+    auto const newContext = pta::CT::contextEvolve(info->context, fork->getLLVMRepr());
     auto const entryNode = info->thread.program.pta.getDirectNodeOrNull(newContext, entryFunc);
     return {entryNode};
   }
 
   // the entry is indirect and we need to figure out where the real function is
-  auto callsite = info->thread.program.pta.getInDirectCallSite(info->context, fork->getInst());
+  auto callsite = info->thread.program.pta.getInDirectCallSite(info->context, fork->getLLVMRepr());
   auto const &nodes = callsite->getResolvedNode();
   return std::vector<const pta::CallGraphNodeTy *>(nodes.begin(), nodes.end());
 }

@@ -59,13 +59,13 @@ llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const IR::Type &type)
 void ReadIR::print(llvm::raw_ostream &os) const {
   auto val = getAccessedValue();
   auto valName = getValNameHelper(val);
-  os << "IR " << type << " - " << valName << " - " << getInst() << "\n";
+  os << "IR " << type << " - " << valName << " - " << getLLVMRepr() << "\n";
 }
 
 void WriteIR::print(llvm::raw_ostream &os) const {
   auto val = getAccessedValue();
   auto valName = getValNameHelper(val);
-  os << "IR " << type << " - " << valName << " - " << getInst() << "\n";
+  os << "IR " << type << " - " << valName << " - " << getLLVMRepr() << "\n";
 }
 
 void ForkIR::print(llvm::raw_ostream &os) const {
@@ -84,7 +84,7 @@ void JoinIR::print(llvm::raw_ostream &os) const {
 }
 
 void CallIR::print(llvm::raw_ostream &os) const {
-  auto func = llvm::cast<llvm::CallBase>(getInst())->getFunction();
+  auto func = llvm::cast<llvm::CallBase>(getLLVMRepr())->getFunction();
   auto funcName = getValNameHelper(func, "UnknownFunc");
   os << "IR " << type << " - " << funcName << "\n";
 }
@@ -106,4 +106,9 @@ llvm::StringRef IR::toString() const {
   print(os);
   os.str();
   return llvm::StringRef(s);
+}
+
+void BlockIR::print(llvm::raw_ostream &os) const {
+  auto blockName = getValNameHelper(this->getLLVMRepr(), "UnnamedBlock");
+  os << "IR " << type << " - " << blockName << "\n";
 }

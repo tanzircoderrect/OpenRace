@@ -65,21 +65,21 @@ declare void @__kmpc_fork_call(%struct.ident_t*, i32, void (i32*, i32*, ...)*, .
 
   auto ompFork = llvm::dyn_cast<race::OpenMPFork>(racefunc.at(0).get());
   REQUIRE(ompFork);
-  CHECK(ompFork->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
+  CHECK(ompFork->getLLVMRepr()->getCalledFunction()->getName() == "__kmpc_fork_call");
   CHECK(ompFork->getThreadEntry()->getName() == ".omp_outlined.");
 
   ompFork = llvm::dyn_cast<race::OpenMPFork>(racefunc.at(1).get());
   REQUIRE(ompFork);
-  CHECK(ompFork->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
+  CHECK(ompFork->getLLVMRepr()->getCalledFunction()->getName() == "__kmpc_fork_call");
   CHECK(ompFork->getThreadEntry()->getName() == ".omp_outlined.");
 
   auto ompJoin = llvm::dyn_cast<race::OpenMPJoin>(racefunc.at(2).get());
   REQUIRE(ompJoin);
-  CHECK(ompJoin->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
+  CHECK(ompJoin->getLLVMRepr()->getCalledFunction()->getName() == "__kmpc_fork_call");
 
   ompJoin = llvm::dyn_cast<race::OpenMPJoin>(racefunc.at(3).get());
   REQUIRE(ompJoin);
-  CHECK(ompJoin->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
+  CHECK(ompJoin->getLLVMRepr()->getCalledFunction()->getName() == "__kmpc_fork_call");
 }
 
 TEST_CASE("Build OpenMP once/end_once IR") {

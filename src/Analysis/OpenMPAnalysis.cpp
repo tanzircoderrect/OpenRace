@@ -272,12 +272,15 @@ const std::vector<const llvm::BasicBlock*>& ReduceAnalysis::getReduceBlocks(Redu
   return computeGuardedBlocks(reduce);
 }
 
-bool ReduceAnalysis::reduceContains(const llvm::Instruction* reduce, const llvm::Instruction* inst) const {
+bool ReduceAnalysis::reduceContains(const ReduceInst reduce, const ReduceInst inst) const {
   auto const& blocks = getReduceBlocks(reduce);
   return std::find(blocks.begin(), blocks.end(), inst->getParent()) != blocks.end();
 }
 
 bool OpenMPAnalysis::inSameReduce(const Event* event1, const Event* event2) const {
+  assert(llvm::isa<llvm::Instruction>(event1->getLLVMRepr()));
+  assert(llvm::isa<llvm::Instruction>(event2->getLLVMRepr()));
+
   // Find reduce events
   for (auto const& event : event1->getThread().getEvents()) {
     // If an event e is inside of a reduce block it must occur *after* the reduce event
@@ -289,9 +292,9 @@ bool OpenMPAnalysis::inSameReduce(const Event* event1, const Event* event2) cons
     // or that it contains neither event (keep searching)
     // if it contains one but not the other, return false
     if (event->getIRInst()->type == IR::Type::OpenMPReduce) {
-      auto const reduce = event->getInst();
-      auto const contains1 = reduceAnalysis.reduceContains(reduce, event1->getInst());
-      auto const contains2 = reduceAnalysis.reduceContains(reduce, event2->getInst());
+      auto const reduce = llvm::dyn_cast<llvm::Instruction>(event->getLLVMRepr());
+      auto const contains1 = reduceAnalysis.reduceContains(reduce, llvm::dyn_cast<llvm::Instruction>(event1->getLLVMRepr()));
+      auto const contains2 = reduceAnalysis.reduceContains(reduce, llvm::dyn_cast<llvm::Instruction>(event2->getLLVMRepr()));
       if (contains1 && contains2) return true;
       if (contains1 || contains2) return false;
     }

@@ -186,7 +186,7 @@ class EnterCallEventImpl : public EnterCallEvent {
   [[nodiscard]] inline const race::CallIR *getIRInst() const override { return call.get(); }
 
   [[nodiscard]] const llvm::Function *getCalledFunction() const override {
-    return call->getInst()->getCalledFunction();
+    return call->getLLVMRepr()->getCalledFunction();
   }
 };
 
@@ -206,7 +206,7 @@ class LeaveCallEventImpl : public LeaveCallEvent {
   [[nodiscard]] inline const race::CallIR *getIRInst() const override { return call.get(); }
 
   [[nodiscard]] const llvm::Function *getCalledFunction() const override {
-    return call->getInst()->getCalledFunction();
+    return call->getLLVMRepr()->getCalledFunction();
   }
 };
 
@@ -226,7 +226,7 @@ class ExternCallEventImpl : public ExternCallEvent {
   [[nodiscard]] inline const race::CallIR *getIRInst() const override { return call.get(); }
 
   [[nodiscard]] const llvm::Function *getCalledFunction() const override {
-    return call->getInst()->getCalledFunction();
+    return call->getLLVMRepr()->getCalledFunction();
   }
 };
 

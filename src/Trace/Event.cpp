@@ -14,7 +14,7 @@ limitations under the License.
 using namespace race;
 
 llvm::raw_ostream &race::operator<<(llvm::raw_ostream &os, const Event &event) {
-  os << event.getID() << " " << event.type << "\t" << *event.getInst();
+  os << event.getID() << " " << event.type << "\t" << *event.getLLVMRepr();
   return os;
 }
 

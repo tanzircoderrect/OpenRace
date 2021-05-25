@@ -27,7 +27,7 @@ using PtsTy = BitVectorPTS;
 class RaceModel : public LangModelBase<ctx, MemModel, PtsTy, RaceModel> {
   using Super = LangModelBase<ctx, MemModel, PtsTy, RaceModel>;
 
-  bool isInvokingAnOrigin(const ctx *prevCtx, const llvm::Instruction *I);
+  bool isInvokingAnOrigin(const ctx *prevCtx, const llvm::Value *V);
 
  public:
   // determine whether the resolved indirect call is compatible

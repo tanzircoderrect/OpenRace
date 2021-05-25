@@ -27,7 +27,7 @@ class Load : public ReadIR {
  public:
   explicit Load(const llvm::LoadInst *load) : ReadIR(Type::Load), inst(load) {}
 
-  [[nodiscard]] inline const llvm::LoadInst *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::LoadInst *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] inline const llvm::Value *getAccessedValue() const override { return inst->getPointerOperand(); }
 
@@ -46,7 +46,7 @@ class APIRead : public ReadIR {
   APIRead(const llvm::CallBase *inst, unsigned int operandOffset)
       : ReadIR(Type::APIRead), operandOffset(operandOffset), inst(inst) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] inline const llvm::Value *getAccessedValue() const override { return inst->getOperand(operandOffset); }
 
@@ -64,7 +64,7 @@ class Store : public WriteIR {
  public:
   explicit Store(const llvm::StoreInst *store) : WriteIR(Type::Store), inst(store) {}
 
-  [[nodiscard]] inline const llvm::StoreInst *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::StoreInst *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] inline const llvm::Value *getAccessedValue() const override { return inst->getPointerOperand(); }
 
@@ -83,10 +83,10 @@ class APIWrite : public WriteIR {
   APIWrite(const llvm::CallBase *inst, unsigned int operandOffset)
       : WriteIR(Type::APIWrite), operandOffset(operandOffset), inst(inst) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] inline const llvm::Value *getAccessedValue() const override {
-    return getInst()->getOperand(operandOffset);
+    return getLLVMRepr()->getOperand(operandOffset);
   }
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
@@ -105,7 +105,7 @@ class PthreadCreate : public ForkIR {
  public:
   explicit PthreadCreate(const llvm::CallBase *inst) : ForkIR(Type::PthreadCreate), inst(inst) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getThreadHandle() const override {
     return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
@@ -133,7 +133,7 @@ class OpenMPFork : public ForkIR {
  public:
   explicit OpenMPFork(const llvm::CallBase *inst) : ForkIR(Type::OpenMPFork), inst(inst) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getThreadHandle() const override {
     return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
@@ -158,7 +158,7 @@ class PthreadJoin : public JoinIR {
  public:
   explicit PthreadJoin(const llvm::CallBase *inst) : JoinIR(Type::PthreadJoin), inst(inst) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getThreadHandle() const override {
     return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
@@ -175,7 +175,7 @@ class OpenMPJoin : public JoinIR {
  public:
   explicit OpenMPJoin(const std::shared_ptr<OpenMPFork> fork) : JoinIR(Type::OpenMPJoin), fork(fork) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return fork->getInst(); }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return fork->getLLVMRepr(); }
 
   [[nodiscard]] const llvm::Value *getThreadHandle() const override { return fork->getThreadHandle(); }
 
@@ -197,7 +197,7 @@ class LockIRImpl : public LockIR {
  public:
   explicit LockIRImpl(const llvm::CallBase *call) : LockIR(T), inst(call) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getLockValue() const override {
     return inst->getArgOperand(lockObjectOffset)->stripPointerCasts();
@@ -219,7 +219,7 @@ class OpenMPCriticalStart: public LockIR {
  public:
   explicit OpenMPCriticalStart(const llvm::CallBase *call) : LockIR(Type::OpenMPCriticalStart), inst(call) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getLockValue() const override {
     return inst->getArgOperand(identityOffset)->stripPointerCasts();
@@ -247,7 +247,7 @@ class UnlockIRImpl : public UnlockIR {
  public:
   explicit UnlockIRImpl(const llvm::CallBase *call) : UnlockIR(T), inst(call) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getLockValue() const override {
     return inst->getArgOperand(lockObjectOffset)->stripPointerCasts();
@@ -269,7 +269,7 @@ class OpenMPCriticalEnd : public UnlockIR {
  public:
   explicit OpenMPCriticalEnd(const llvm::CallBase *call) : UnlockIR(Type::OpenMPCriticalEnd), inst(call) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 
   [[nodiscard]] const llvm::Value *getLockValue() const override {
     return inst->getArgOperand(identityOffset)->stripPointerCasts();
@@ -294,7 +294,7 @@ class OpenMPBarrier : public BarrierIR {
  public:
   explicit OpenMPBarrier(const llvm::CallBase *call) : BarrierIR(Type::OpenMPBarrier), inst(call) {}
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] inline const llvm::CallBase *getLLVMRepr() const override { return inst; }
 };
 
 // =================================================================

@@ -19,7 +19,7 @@ using namespace pta;
 
 RaceModel::RaceModel(llvm::Module *M, llvm::StringRef entry) : Super(M, entry) {
   ctx::setOriginRules(
-      [&](const ctx *context, const llvm::Instruction *I) -> bool { return this->isInvokingAnOrigin(context, I); });
+      [&](const ctx *context, const llvm::Value *V) -> bool { return this->isInvokingAnOrigin(context, V); });
 }
 
 InterceptResult RaceModel::interceptFunction(const ctx *callerCtx, const ctx *calleeCtx, const llvm::Function *F,
@@ -115,8 +115,8 @@ namespace {
 const std::set<llvm::StringRef> origins{"pthread_create", "__kmpc_fork_call"};
 }  // namespace
 
-bool RaceModel::isInvokingAnOrigin(const ctx *prevCtx, const llvm::Instruction *I) {
-  auto call = llvm::dyn_cast<CallBase>(I);
+bool RaceModel::isInvokingAnOrigin(const ctx *prevCtx, const llvm::Value *V) {
+  auto call = llvm::dyn_cast<CallBase>(V);
   if (!call || !call->getCalledFunction() || !call->getCalledFunction()->hasName()) return false;
 
   auto const name = call->getCalledFunction()->getName();

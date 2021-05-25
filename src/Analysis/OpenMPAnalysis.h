@@ -41,7 +41,7 @@ class ReduceAnalysis {
 
  public:
   // return true if inst is inside of code blocks making up belonging to reduce
-  bool reduceContains(const llvm::Instruction* reduce, const llvm::Instruction* inst) const;
+  bool reduceContains(const ReduceInst reduce, const ReduceInst inst) const;
 };
 
 class OpenMPAnalysis {
