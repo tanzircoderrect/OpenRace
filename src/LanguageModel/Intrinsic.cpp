@@ -13,8 +13,8 @@ limitations under the License.
 
 namespace IntrinsicModel {
 
-// TODO: need different system for storing and organizing these "recognizers"
 bool isPrintf(const llvm::StringRef &funcName) { return funcName.equals("printf"); }
+
 bool isLLVMDebug(const llvm::StringRef &funcName) {
   return funcName.equals("llvm.dbg.declare") || funcName.equals("llvm.dbg.value");
 }

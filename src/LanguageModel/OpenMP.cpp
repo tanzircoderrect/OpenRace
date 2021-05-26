@@ -11,6 +11,8 @@ limitations under the License.
 
 #include "LanguageModel/OpenMP.h"
 
+#include <utility>
+
 namespace OpenMPModel {
 
 bool isFork(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_fork_call"); }
@@ -110,7 +112,7 @@ bool Modeller::addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>>& instr
       llvm::errs() << "Encountered non-duplicated omp fork instruction: " << *callInst << "\n";
       llvm::errs() << "Next Inst was: " << *callInst->getNextNode() << "\n";
       llvm::errs() << "Skipping entire OpenMP region\n";
-      return true; // we recognised it, but couldn't process it
+      return true;  // we recognised it, but couldn't process it
     }
     // We matched the next inst as twin omp fork
     ++it;
@@ -131,5 +133,49 @@ bool Modeller::addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>>& instr
   }
   return true;
 }
+
+Fork::Fork(const llvm::CallBase* inst) : ForkIR(Type::OpenMPFork), inst(inst) {}
+
+const llvm::CallBase* Fork::getInst() const { return inst; }
+
+const llvm::Value* Fork::getThreadHandle() const {
+  return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
+}
+
+const llvm::Value* Fork::getThreadEntry() const { return inst->getArgOperand(threadEntryOffset)->stripPointerCasts(); }
+
+bool Fork::classof(const race::IR* e) { return e->type == Type::OpenMPFork; }
+
+Join::Join(std::shared_ptr<Fork> fork) : JoinIR(Type::OpenMPJoin), fork(std::move(fork)) {}
+
+const llvm::CallBase* Join::getInst() const { return fork->getInst(); }
+
+const llvm::Value* Join::getThreadHandle() const { return fork->getThreadHandle(); }
+
+bool Join::classof(const race::IR* e) { return e->type == Type::OpenMPJoin; }
+
+CriticalStart::CriticalStart(const llvm::CallBase* call) : LockIR(Type::OpenMPCriticalStart), inst(call) {}
+
+const llvm::CallBase* CriticalStart::getInst() const { return inst; }
+
+const llvm::Value* CriticalStart::getLockValue() const {
+  return inst->getArgOperand(identityOffset)->stripPointerCasts();
+}
+
+bool CriticalStart::classof(const race::IR* e) { return e->type == Type::OpenMPCriticalStart; }
+
+CriticalEnd::CriticalEnd(const llvm::CallBase* call) : UnlockIR(Type::OpenMPCriticalEnd), inst(call) {}
+
+const llvm::CallBase* CriticalEnd::getInst() const { return inst; }
+
+const llvm::Value* CriticalEnd::getLockValue() const {
+  return inst->getArgOperand(identityOffset)->stripPointerCasts();
+}
+
+bool CriticalEnd::classof(const race::IR* e) { return e->type == Type::OpenMPCriticalEnd; }
+
+Barrier::Barrier(const llvm::CallBase* call) : BarrierIR(Type::OpenMPBarrier), inst(call) {}
+
+const llvm::CallBase* Barrier::getInst() const { return inst; }
 
 }  // namespace OpenMPModel

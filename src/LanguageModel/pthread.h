@@ -35,20 +35,16 @@ class Create : public race::ForkIR {
   const llvm::CallBase *inst;
 
  public:
-  explicit Create(const llvm::CallBase *inst) : ForkIR(Type::PthreadCreate), inst(inst) {}
+  explicit Create(const llvm::CallBase *inst);
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] const llvm::CallBase *getInst() const override;
 
-  [[nodiscard]] const llvm::Value *getThreadHandle() const override {
-    return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value *getThreadHandle() const override;
 
-  [[nodiscard]] const llvm::Value *getThreadEntry() const override {
-    return inst->getArgOperand(threadEntryOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value *getThreadEntry() const override;
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::PthreadCreate; }
+  static bool classof(const IR *e);
 };
 
 class Join : public race::JoinIR {
@@ -56,16 +52,14 @@ class Join : public race::JoinIR {
   const llvm::CallBase *inst;
 
  public:
-  explicit Join(const llvm::CallBase *inst) : JoinIR(Type::PthreadJoin), inst(inst) {}
+  explicit Join(const llvm::CallBase *inst);
 
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
+  [[nodiscard]] const llvm::CallBase *getInst() const override;
 
-  [[nodiscard]] const llvm::Value *getThreadHandle() const override {
-    return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value *getThreadHandle() const override;
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::PthreadJoin; }
+  static bool classof(const IR *e);
 };
 
 // NOTE: if a specific API semantic is the same as default impl,

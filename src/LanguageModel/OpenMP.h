@@ -43,20 +43,16 @@ class Fork : public race::ForkIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit Fork(const llvm::CallBase* inst) : ForkIR(Type::OpenMPFork), inst(inst) {}
+  explicit Fork(const llvm::CallBase* inst);
 
-  [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
+  [[nodiscard]] const llvm::CallBase* getInst() const override;
 
-  [[nodiscard]] const llvm::Value* getThreadHandle() const override {
-    return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value* getThreadHandle() const override;
 
-  [[nodiscard]] const llvm::Value* getThreadEntry() const override {
-    return inst->getArgOperand(threadEntryOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value* getThreadEntry() const override;
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR* e) { return e->type == Type::OpenMPFork; }
+  static bool classof(const IR* e);
 };
 
 // This actually corresponds to a OpenMP fork instruction, as the fork call acts as both a fork and join in one call
@@ -64,14 +60,14 @@ class Join : public race::JoinIR {
   std::shared_ptr<Fork> fork;
 
  public:
-  explicit Join(const std::shared_ptr<Fork> fork) : JoinIR(Type::OpenMPJoin), fork(fork) {}
+  explicit Join(std::shared_ptr<Fork> fork);
 
-  [[nodiscard]] inline const llvm::CallBase* getInst() const override { return fork->getInst(); }
+  [[nodiscard]] const llvm::CallBase* getInst() const override;
 
-  [[nodiscard]] const llvm::Value* getThreadHandle() const override { return fork->getThreadHandle(); }
+  [[nodiscard]] const llvm::Value* getThreadHandle() const override;
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR* e) { return e->type == Type::OpenMPJoin; }
+  static bool classof(const IR* e);
 };
 
 class CriticalStart : public race::LockIR {
@@ -84,15 +80,13 @@ class CriticalStart : public race::LockIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit CriticalStart(const llvm::CallBase* call) : LockIR(Type::OpenMPCriticalStart), inst(call) {}
+  explicit CriticalStart(const llvm::CallBase* call);
 
-  [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
+  [[nodiscard]] const llvm::CallBase* getInst() const override;
 
-  [[nodiscard]] const llvm::Value* getLockValue() const override {
-    return inst->getArgOperand(identityOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value* getLockValue() const override;
 
-  static inline bool classof(const IR* e) { return e->type == Type::OpenMPCriticalStart; }
+  static bool classof(const IR* e);
 };
 
 class CriticalEnd : public race::UnlockIR {
@@ -105,15 +99,13 @@ class CriticalEnd : public race::UnlockIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit CriticalEnd(const llvm::CallBase* call) : UnlockIR(Type::OpenMPCriticalEnd), inst(call) {}
+  explicit CriticalEnd(const llvm::CallBase* call);
 
-  [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
+  [[nodiscard]] const llvm::CallBase* getInst() const override;
 
-  [[nodiscard]] const llvm::Value* getLockValue() const override {
-    return inst->getArgOperand(identityOffset)->stripPointerCasts();
-  }
+  [[nodiscard]] const llvm::Value* getLockValue() const override;
 
-  static inline bool classof(const IR* e) { return e->type == Type::OpenMPCriticalEnd; }
+  static bool classof(const IR* e);
 };
 
 // https://github.com/llvm/llvm-project/blob/d32170dbd5b0d54436537b6b75beaf44324e0c28/openmp/runtime/src/kmp_csupport.cpp#L713
@@ -121,9 +113,9 @@ class Barrier : public race::BarrierIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit Barrier(const llvm::CallBase* call) : BarrierIR(Type::OpenMPBarrier), inst(call) {}
+  explicit Barrier(const llvm::CallBase* call);
 
-  [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
+  [[nodiscard]] const llvm::CallBase* getInst() const override;
 };
 
 using ForInit = race::CallIRImpl<race::IR::Type::OpenMPForInit>;

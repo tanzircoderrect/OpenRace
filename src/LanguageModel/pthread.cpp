@@ -43,4 +43,28 @@ bool Modeller::addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>> &instr
   return true;
 }
 
+Create::Create(const llvm::CallBase *inst) : ForkIR(Type::PthreadCreate), inst(inst) {}
+
+const llvm::CallBase *Create::getInst() const { return inst; }
+
+const llvm::Value *Create::getThreadHandle() const {
+  return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
+}
+
+const llvm::Value *Create::getThreadEntry() const {
+  return inst->getArgOperand(threadEntryOffset)->stripPointerCasts();
+}
+
+bool Create::classof(const race::IR *e) { return e->type == Type::PthreadCreate; }
+
+Join::Join(const llvm::CallBase *inst) : JoinIR(Type::PthreadJoin), inst(inst) {}
+
+const llvm::CallBase *Join::getInst() const { return inst; }
+
+const llvm::Value *Join::getThreadHandle() const {
+  return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
+}
+
+bool Join::classof(const race::IR *e) { return e->type == Type::PthreadJoin; }
+
 }  // namespace PthreadModel
