@@ -27,6 +27,7 @@ struct Region {
   inline bool contains(EventID e) const { return end >= e && e >= start; }
 };
 
+
 class ReduceAnalysis {
   using ReduceInst = const llvm::Instruction*;
 

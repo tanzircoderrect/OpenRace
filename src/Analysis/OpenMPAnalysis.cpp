@@ -13,6 +13,8 @@ const llvm::GetElementPtrInst* getArrayAccess(const MemAccessEvent* event) {
   return llvm::dyn_cast<llvm::GetElementPtrInst>(event->getIRInst()->getAccessedValue()->stripPointerCasts());
 }
 
+bool regionEndLessThan(const Region& region1, const Region& region2) { return region1.end < region2.end; }
+
 }  // namespace
 
 OpenMPAnalysis::OpenMPAnalysis() { PB.registerFunctionAnalyses(FAM); }
@@ -104,10 +106,10 @@ template <IR::Type Start, IR::Type End>
 bool in(const race::Event* event) {
   auto const regions = getRegions<Start, End>(event->getThread());
   auto const eid = event->getID();
-  for (auto const& region : regions) {
-    if (region.contains(eid)) return true;
-    // Break early if we pass the eid without finding matching region
-    if (region.end > eid) return false;
+  auto it = lower_bound (regions.begin(), regions.end(), Region(eid, eid),  regionEndLessThan);
+  if (it != regions.end()){
+    if (it->contains (eid))
+      return true;
   }
   return false;
 }
@@ -128,12 +130,11 @@ bool inSame(const Event* event1, const Event* event2) {
 
   // Omp threads in same team will have identical traces so we only need one set of events
   auto const regions = getRegions<Start, End>(event1->getThread());
-  for (auto const& region : regions) {
-    // If region contains one, check if it also contains the other
-    if (region.contains(minID)) return region.contains(maxID);
-
-    // End early if end of this region passes smaller event ID
-    if (region.end > minID) return false;
+  auto it = lower_bound (regions.begin(), regions.end(), Region (minID, minID), regionEndLessThan);
+  if (it != regions.end()){
+    if (it->contains (minID)){
+      return it->contains (maxID);
+    }
   }
   return false;
 }
@@ -160,10 +161,11 @@ const std::vector<OpenMPAnalysis::LoopRegion>& OpenMPAnalysis::getOmpForLoops(co
 bool OpenMPAnalysis::inParallelFor(const race::MemAccessEvent* event) {
   auto loopRegions = getOmpForLoops(event->getThread());
   auto const eid = event->getID();
-  for (auto const& region : loopRegions) {
-    if (region.contains(eid)) return true;
-    // Break early if we pass the eid without finding matching region
-    if (region.end > eid) return false;
+
+  auto it = lower_bound (loopRegions.begin(), loopRegions.end(), Region(eid, eid), regionEndLessThan);
+  if (it != loopRegions.end()){
+	if (it->contains (eid))
+	  return true;
   }
 
   return false;
@@ -258,9 +260,7 @@ std::vector<const llvm::BasicBlock*>& ReduceAnalysis::computeGuardedBlocks(Reduc
     // Keep traversing
     for (auto const succ : llvm::successors(block)) {
       if (visited.find(succ) == visited.end()) {
-        if (visited.find(succ) == visited.end()) {
-          worklist.push_back(succ);
-        }
+        worklist.push_back(succ);
       }
     }
   }
