@@ -29,6 +29,8 @@ target_compile_features(pta PUBLIC cxx_std_17)
 
 
 set(racedetect-lib-sources
+        LanguageModel/OpenMP.cpp
+        LanguageModel/pthread.cpp
         LanguageModel/RaceModel.cpp
         Analysis/HappensBeforeGraph.cpp
         Analysis/LockSet.cpp

@@ -97,91 +97,9 @@ class APIWrite : public WriteIR {
 // ================== ForkIR Implementations ========================
 // ==================================================================
 
-class PthreadCreate : public ForkIR {
-  constexpr static unsigned int threadHandleOffset = 0;
-  constexpr static unsigned int threadEntryOffset = 2;
-  const llvm::CallBase *inst;
-
- public:
-  explicit PthreadCreate(const llvm::CallBase *inst) : ForkIR(Type::PthreadCreate), inst(inst) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
-
-  [[nodiscard]] const llvm::Value *getThreadHandle() const override {
-    return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
-  }
-
-  [[nodiscard]] const llvm::Value *getThreadEntry() const override {
-    return inst->getArgOperand(threadEntryOffset)->stripPointerCasts();
-  }
-
-  // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::PthreadCreate; }
-};
-
-class OpenMPFork : public ForkIR {
-  // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L262
-  // @param loc  source location information
-  // @param argc  total number of arguments in the ellipsis
-  // @param microtask  pointer to callback routine consisting of outlined parallel
-  // construct
-  // @param ...  pointers to shared variables that aren't global
-  constexpr static unsigned int threadHandleOffset = 0;
-  constexpr static unsigned int threadEntryOffset = 2;
-  const llvm::CallBase *inst;
-
- public:
-  explicit OpenMPFork(const llvm::CallBase *inst) : ForkIR(Type::OpenMPFork), inst(inst) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
-
-  [[nodiscard]] const llvm::Value *getThreadHandle() const override {
-    return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
-  }
-
-  [[nodiscard]] const llvm::Value *getThreadEntry() const override {
-    return inst->getArgOperand(threadEntryOffset)->stripPointerCasts();
-  }
-
-  // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::OpenMPFork; }
-};
-
 // ==================================================================
 // ================== JoinIR Implementations ========================
 // ==================================================================
-
-class PthreadJoin : public JoinIR {
-  const unsigned int threadHandleOffset = 0;
-  const llvm::CallBase *inst;
-
- public:
-  explicit PthreadJoin(const llvm::CallBase *inst) : JoinIR(Type::PthreadJoin), inst(inst) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
-
-  [[nodiscard]] const llvm::Value *getThreadHandle() const override {
-    return inst->getArgOperand(threadHandleOffset)->stripPointerCasts();
-  }
-
-  // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::PthreadJoin; }
-};
-
-// This actually corresponds to a OpenMP fork instruction, as the fork call acts as both a fork and join in one call
-class OpenMPJoin : public JoinIR {
-  std::shared_ptr<OpenMPFork> fork;
-
- public:
-  explicit OpenMPJoin(const std::shared_ptr<OpenMPFork> fork) : JoinIR(Type::OpenMPJoin), fork(fork) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return fork->getInst(); }
-
-  [[nodiscard]] const llvm::Value *getThreadHandle() const override { return fork->getThreadHandle(); }
-
-  // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::OpenMPJoin; }
-};
 
 // ==================================================================
 // ================== LockIR Implementations ========================
@@ -207,32 +125,6 @@ class LockIRImpl : public LockIR {
   static inline bool classof(const IR *e) { return e->type == T; }
 };
 
-class OpenMPCriticalStart: public LockIR {
-  // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L1157
-  // @param loc  source location information
-  // @param global_tid  global thread number
-  // @param crit identity of the critical section. This could be a pointer to a lock
-  // associated with the critical section, or some other suitably unique value
-  const unsigned int identityOffset = 2;
-  const llvm::CallBase *inst;
-
- public:
-  explicit OpenMPCriticalStart(const llvm::CallBase *call) : LockIR(Type::OpenMPCriticalStart), inst(call) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
-
-  [[nodiscard]] const llvm::Value *getLockValue() const override {
-    return inst->getArgOperand(identityOffset)->stripPointerCasts();
-  }
-
-  static inline bool classof(const IR *e) { return e->type == Type::OpenMPCriticalStart; }
-};
-
-// NOTE: if a specific API semantic is the same as default impl,
-// create a type alias.
-using PthreadMutexLock = LockIRImpl<IR::Type::PthreadMutexLock>;
-using PthreadSpinLock = LockIRImpl<IR::Type::PthreadSpinLock>;
-
 // ==================================================================
 // ================= UnlockIR Implementations =======================
 // ==================================================================
@@ -257,45 +149,9 @@ class UnlockIRImpl : public UnlockIR {
   static inline bool classof(const IR *e) { return e->type == T; }
 };
 
-class OpenMPCriticalEnd : public UnlockIR {
-  // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L1512
-  // @param loc  source location information
-  // @param global_tid  global thread number
-  // @param crit identity of the critical section. This could be a pointer to a lock
-  // associated with the critical section, or some other suitably unique value
-  const unsigned int identityOffset = 2;
-  const llvm::CallBase *inst;
-
- public:
-  explicit OpenMPCriticalEnd(const llvm::CallBase *call) : UnlockIR(Type::OpenMPCriticalEnd), inst(call) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
-
-  [[nodiscard]] const llvm::Value *getLockValue() const override {
-    return inst->getArgOperand(identityOffset)->stripPointerCasts();
-  }
-
-  static inline bool classof(const IR *e) { return e->type == Type::OpenMPCriticalEnd; }
-};
-
-// NOTE: if a specific API semantic is the same as default impl,
-// create a type alias.
-using PthreadMutexUnlock = UnlockIRImpl<IR::Type::PthreadMutexUnlock>;
-using PthreadSpinUnlock = UnlockIRImpl<IR::Type::PthreadSpinUnlock>;
-
 // =================================================================
 // ================= Barrier Implementations =======================
 // =================================================================
-
-// https://github.com/llvm/llvm-project/blob/d32170dbd5b0d54436537b6b75beaf44324e0c28/openmp/runtime/src/kmp_csupport.cpp#L713
-class OpenMPBarrier : public BarrierIR {
-  const llvm::CallBase *inst;
-
- public:
-  explicit OpenMPBarrier(const llvm::CallBase *call) : BarrierIR(Type::OpenMPBarrier), inst(call) {}
-
-  [[nodiscard]] inline const llvm::CallBase *getInst() const override { return inst; }
-};
 
 // =================================================================
 // ================= Other Implementations =========================
@@ -311,16 +167,5 @@ class CallIRImpl : public CallIR {
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
   static inline bool classof(const IR *e) { return e->type == T; }
 };
-
-using OmpForInit = CallIRImpl<IR::Type::OpenMPForInit>;
-using OmpForFini = CallIRImpl<IR::Type::OpenMPForFini>;
-
-using OpenMPSingleStart = CallIRImpl<IR::Type::OpenMPSingleStart>;
-using OpenMPSingleEnd = CallIRImpl<IR::Type::OpenMPSingleEnd>;
-
-using OpenMPReduce = CallIRImpl<IR::Type::OpenMPReduce>;
-
-using OpenMPMasterStart = CallIRImpl<IR::Type::OpenMPMasterStart>;
-using OpenMPMasterEnd = CallIRImpl<IR::Type::OpenMPMasterEnd>;
 
 }  // namespace race

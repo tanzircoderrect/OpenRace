@@ -14,6 +14,8 @@ limitations under the License.
 #include "IR/IRImpls.h"
 #include "LanguageModel/OpenMP.h"
 #include "LanguageModel/pthread.h"
+#include "OpenMP.h"
+#include "pthread.h"
 
 using namespace pta;
 
@@ -32,13 +34,13 @@ InterceptResult RaceModel::interceptFunction(const ctx *callerCtx, const ctx *ca
   }
 
   if (PthreadModel::isPthreadCreate(funcName)) {
-    race::PthreadCreate create(llvm::cast<CallBase>(callsite));
+    PthreadModel::PthreadCreate create(llvm::cast<CallBase>(callsite));
     auto callback = create.getThreadEntry()->stripPointerCasts();
     return {callback, InterceptResult::Option::EXPAND_BODY};
   }
 
   if (OpenMPModel::isFork(funcName)) {
-    race::OpenMPFork fork(llvm::cast<CallBase>(callsite));
+    OpenMPModel::OpenMPFork fork(llvm::cast<CallBase>(callsite));
     return {fork.getThreadEntry(), InterceptResult::Option::EXPAND_BODY};
   }
 

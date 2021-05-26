@@ -9,6 +9,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <LanguageModel/OpenMP.h>
 #include <llvm/AsmParser/Parser.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -63,21 +64,21 @@ declare void @__kmpc_fork_call(%struct.ident_t*, i32, void (i32*, i32*, ...)*, .
   auto racefunc = race::generateFunctionSummary(func);
   REQUIRE(racefunc.size() == 4);
 
-  auto ompFork = llvm::dyn_cast<race::OpenMPFork>(racefunc.at(0).get());
+  auto ompFork = llvm::dyn_cast<OpenMPModel::OpenMPFork>(racefunc.at(0).get());
   REQUIRE(ompFork);
   CHECK(ompFork->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
   CHECK(ompFork->getThreadEntry()->getName() == ".omp_outlined.");
 
-  ompFork = llvm::dyn_cast<race::OpenMPFork>(racefunc.at(1).get());
+  ompFork = llvm::dyn_cast<OpenMPModel::OpenMPFork>(racefunc.at(1).get());
   REQUIRE(ompFork);
   CHECK(ompFork->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
   CHECK(ompFork->getThreadEntry()->getName() == ".omp_outlined.");
 
-  auto ompJoin = llvm::dyn_cast<race::OpenMPJoin>(racefunc.at(2).get());
+  auto ompJoin = llvm::dyn_cast<OpenMPModel::OpenMPJoin>(racefunc.at(2).get());
   REQUIRE(ompJoin);
   CHECK(ompJoin->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
 
-  ompJoin = llvm::dyn_cast<race::OpenMPJoin>(racefunc.at(3).get());
+  ompJoin = llvm::dyn_cast<OpenMPModel::OpenMPJoin>(racefunc.at(3).get());
   REQUIRE(ompJoin);
   CHECK(ompJoin->getInst()->getCalledFunction()->getName() == "__kmpc_fork_call");
 }
