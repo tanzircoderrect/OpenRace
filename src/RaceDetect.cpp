@@ -11,10 +11,13 @@ limitations under the License.
 
 #include "RaceDetect.h"
 
+#include <llvm/Analysis/ScopedNoAliasAA.h>
+
 #include "Analysis/HappensBeforeGraph.h"
 #include "Analysis/LockSet.h"
 #include "Analysis/OpenMPAnalysis.h"
 #include "Analysis/SharedMemory.h"
+#include "Analysis/SimpleAlias.h"
 #include "LanguageModel/RaceModel.h"
 #include "PreProcessing/PreProcessing.h"
 #include "Trace/ProgramTrace.h"
@@ -38,13 +41,25 @@ Report race::detectRaces(llvm::Module *module, DetectRaceConfig config) {
   race::SharedMemory sharedmem(program);
   race::HappensBeforeGraph happensbefore(program);
   race::LockSet lockset(program);
+  race::SimpleAlias simpleAlias;
   race::OpenMPAnalysis ompAnalysis;
 
   race::Reporter reporter;
 
+  llvm::PassBuilder PB;
+  llvm::FunctionAnalysisManager FAM;
+  PB.registerFunctionAnalyses(FAM);
+  // contains default AA pipeline (type + scoped + global)
+  // but i do not know how to register it properly now
+  // FAM.registerPass([&] { return PB.buildDefaultAAPipeline(); });
+
   // Adds to report if race is detected between write and other
   auto checkRace = [&](const race::WriteEvent *write, const race::MemAccessEvent *other) {
     if (!happensbefore.areParallel(write, other) || lockset.sharesLock(write, other)) {
+      return;
+    }
+
+    if (simpleAlias.mustNotAlias(write, other)) {
       return;
     }
 

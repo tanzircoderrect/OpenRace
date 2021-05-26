@@ -8,25 +8,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
 //
-// Created by peiming on 7/23/20.
+// Created by peiming on 5/11/21.
 //
 
-#ifndef PTA_REWRITEMODELEDAPIPASS_H
-#define PTA_REWRITEMODELEDAPIPASS_H
+#ifndef OPENRACE_OMPCONSTANTPROPPASS_H
+#define OPENRACE_OMPCONSTANTPROPPASS_H
 
+#include <llvm/Analysis/TargetLibraryInfo.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/Pass.h>
-namespace pta::cpp {
 
-class RewriteModeledAPIPass : public llvm::FunctionPass {
+class OMPConstantPropPass : public llvm::PassInfoMixin<OMPConstantPropPass> {
  public:
-  static char ID;
-  explicit RewriteModeledAPIPass() : llvm::FunctionPass(ID) {}
-
-  bool runOnFunction(llvm::Function &F) override;
+  llvm::PreservedAnalyses run(llvm::Module &M, llvm::ModuleAnalysisManager &AM);
+  static bool isRequired() { return true; }
 };
 
-}  // namespace pta::cpp
-
-#endif
+#endif  // OPENRACE_OMPCONSTANTPROPPASS_H

@@ -9,24 +9,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-//
-// Created by peiming on 7/23/20.
-//
+#pragma once
 
-#ifndef PTA_REWRITEMODELEDAPIPASS_H
-#define PTA_REWRITEMODELEDAPIPASS_H
+#include <llvm/IR/PassManager.h>
+#include <llvm/Passes/PassBuilder.h>
 
-#include <llvm/Pass.h>
-namespace pta::cpp {
+#include "Trace/Event.h"
 
-class RewriteModeledAPIPass : public llvm::FunctionPass {
+namespace race {
+
+// This class is a simple wrapper for LLVM's ScopedNoAliasAA Pass
+class SimpleAlias {
+  llvm::PassBuilder PB;
+  llvm::FunctionAnalysisManager FAM;
+
  public:
-  static char ID;
-  explicit RewriteModeledAPIPass() : llvm::FunctionPass(ID) {}
+  SimpleAlias() { PB.registerFunctionAnalyses(FAM); }
 
-  bool runOnFunction(llvm::Function &F) override;
+  // return true if the memory accessed by each instruction cannot alias
+  bool mustNotAlias(const WriteEvent *write, const MemAccessEvent *other);
 };
 
-}  // namespace pta::cpp
-
-#endif
+}  // namespace race
