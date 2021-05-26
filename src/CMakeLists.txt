@@ -29,6 +29,7 @@ target_compile_features(pta PUBLIC cxx_std_17)
 
 
 set(racedetect-lib-sources
+        LanguageModel/Intrinsic.cpp
         LanguageModel/OpenMP.cpp
         LanguageModel/pthread.cpp
         LanguageModel/RaceModel.cpp

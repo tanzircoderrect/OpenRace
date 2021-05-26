@@ -11,14 +11,14 @@ limitations under the License.
 
 #pragma once
 
-#include <IR/IR.h>
+#include "LanguageModel/LanguageModeller.h"
 
-#include <memory>
-#include <vector>
+namespace IntrinsicModel {
 
-class LanguageModeller {
+class Modeller : public LanguageModeller {
  public:
-  [[nodiscard]] virtual bool addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>>& instructions,
-                                           llvm::BasicBlock::const_iterator& it, const llvm::CallBase* callInst,
-                                           const llvm::StringRef& funcName) const = 0;
+  bool addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>>& instructions, llvm::BasicBlock::const_iterator& it,
+                     const llvm::CallBase* callInst, const llvm::StringRef& funcName) const override;
 };
+
+}

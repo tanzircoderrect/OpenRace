@@ -22,10 +22,9 @@ inline bool isPthreadSpinLock(const llvm::StringRef &funcName) { return funcName
 inline bool isPthreadSpinUnlock(const llvm::StringRef &funcName) { return funcName.equals("pthread_spin_unlock"); }
 inline bool isPthreadOnce(const llvm::StringRef &funcName) { return funcName.equals("pthread_once"); }
 
-std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::BasicBlock::const_iterator &it,
-                                                                     const llvm::CallBase *callInst,
-                                                                     const llvm::StringRef &funcName) const {
-  std::vector<std::shared_ptr<const race::IR>> instructions;
+bool Modeller::addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>> &instructions,
+                             llvm::BasicBlock::const_iterator &it, const llvm::CallBase *callInst,
+                             const llvm::StringRef &funcName) const {
   if (isPthreadCreate(funcName)) {
     instructions.push_back(std::make_shared<Create>(callInst));
   } else if (isPthreadJoin(funcName)) {
@@ -37,9 +36,11 @@ std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::Basic
   } else if (isPthreadSpinLock(funcName)) {
     instructions.push_back(std::make_shared<SpinLock>(callInst));
   } else if (isPthreadSpinUnlock(funcName)) {
-    instructions.push_back(std::make_shared<SpinUnlock>(callInst));
+    instructions.push_back(std::make_shared<PthreadSpinUnlock>(callInst));
+  } else {
+    return false;
   }
-  return instructions;
+  return true;
 }
 
 }  // namespace PthreadModel

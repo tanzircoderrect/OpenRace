@@ -26,9 +26,9 @@ bool isFork(const llvm::CallBase* callInst);
 
 class Modeller : public LanguageModeller {
  public:
-  [[nodiscard]] std::vector<std::shared_ptr<const race::IR>> getFuncIRRepr(
-      llvm::BasicBlock::const_iterator& it, const llvm::CallBase* callInst,
-      const llvm::StringRef& funcName) const override;
+  [[nodiscard]] bool addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>>& instructions,
+                                   llvm::BasicBlock::const_iterator& it, const llvm::CallBase* callInst,
+                                   const llvm::StringRef& funcName) const override;
 };
 
 class Fork : public race::ForkIR {

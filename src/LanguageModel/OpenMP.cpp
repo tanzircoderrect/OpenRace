@@ -76,10 +76,9 @@ std::shared_ptr<Fork> getTwinOmpFork(const llvm::CallBase* ompForkCall) {
   return std::make_shared<Fork>(twinCallInst);
 }
 
-std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::BasicBlock::const_iterator& it,
-                                                                     const llvm::CallBase* callInst,
-                                                                     const llvm::StringRef& funcName) const {
-  std::vector<std::shared_ptr<const race::IR>> instructions;
+bool Modeller::addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>>& instructions,
+                             llvm::BasicBlock::const_iterator& it, const llvm::CallBase* callInst,
+                             const llvm::StringRef& funcName) const {
   if (isForStaticInit(funcName)) {
     instructions.push_back(std::make_shared<ForInit>(callInst));
   } else if (isForStaticFini(funcName)) {
@@ -111,7 +110,7 @@ std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::Basic
       llvm::errs() << "Encountered non-duplicated omp fork instruction: " << *callInst << "\n";
       llvm::errs() << "Next Inst was: " << *callInst->getNextNode() << "\n";
       llvm::errs() << "Skipping entire OpenMP region\n";
-      return instructions;
+      return true; // we recognised it, but couldn't process it
     }
     // We matched the next inst as twin omp fork
     ++it;
@@ -127,8 +126,10 @@ std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::Basic
     // Used to make sure we are not implicitly ignoring any OpenMP features
     // We should instead make sure we take the correct action for any OpenMP call
     assert((!OpenMPModel::isOpenMP(funcName) || OpenMPModel::isNoEffect(funcName)) && "Unhandled OpenMP Call!");
+
+    return false;
   }
-  return instructions;
+  return true;
 }
 
 }  // namespace OpenMPModel

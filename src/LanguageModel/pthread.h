@@ -24,9 +24,9 @@ bool isPthreadCreate(const llvm::StringRef &funcName);
 
 class Modeller : public LanguageModeller {
  public:
-  [[nodiscard]] std::vector<std::shared_ptr<const race::IR>> getFuncIRRepr(
-      llvm::BasicBlock::const_iterator &it, const llvm::CallBase *callInst,
-      const llvm::StringRef &funcName) const override;
+  [[nodiscard]] bool addFuncIRRepr(std::vector<std::shared_ptr<const race::IR>> &instructions,
+                                   llvm::BasicBlock::const_iterator &it, const llvm::CallBase *callInst,
+                                   const llvm::StringRef &funcName) const override;
 };
 
 class Create : public race::ForkIR {
@@ -76,6 +76,6 @@ using SpinLock = race::LockIRImpl<race::IR::Type::PthreadSpinLock>;
 // NOTE: if a specific API semantic is the same as default impl,
 // create a type alias.
 using MutexUnlock = race::UnlockIRImpl<race::IR::Type::PthreadMutexUnlock>;
-using SpinUnlock = race::UnlockIRImpl<race::IR::Type::PthreadSpinUnlock>;
+using PthreadSpinUnlock = race::UnlockIRImpl<race::IR::Type::PthreadSpinUnlock>;
 
 }  // namespace PthreadModel

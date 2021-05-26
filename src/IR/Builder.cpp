@@ -16,6 +16,7 @@ limitations under the License.
 #include <llvm/IR/Instructions.h>
 
 #include "IR/IRImpls.h"
+#include "LanguageModel/Intrinsic.h"
 #include "LanguageModel/LanguageModeller.h"
 #include "LanguageModel/OpenMP.h"
 #include "LanguageModel/pthread.h"
@@ -38,12 +39,6 @@ bool hasThreadLocalOperand(const llvm::Instruction *inst) {
   return false;
 }
 
-// TODO: need different system for storing and organizing these "recognizers"
-bool isPrintf(const llvm::StringRef &funcName) { return funcName.equals("printf"); }
-bool isLLVMDebug(const llvm::StringRef &funcName) {
-  return funcName.equals("llvm.dbg.declare") || funcName.equals("llvm.dbg.value");
-}
-
 }  // namespace
 
 FunctionSummary race::generateFunctionSummary(const llvm::Function *func) {
@@ -54,11 +49,12 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function *func) {
 FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
   // TODO move this to a field in a function summary generator type
   std::vector<std::shared_ptr<const LanguageModeller>> modellers = {std::make_shared<OpenMPModel::Modeller>(),
-                                                                    std::make_shared<PthreadModel::Modeller>()};
+                                                                    std::make_shared<PthreadModel::Modeller>(),
+                                                                    /* std::make_shared<IntrinsicModel::Modeller>() */};
   FunctionSummary instructions;
 
   for (auto const &basicblock : func.getBasicBlockList()) {
-    instruction_iteration:
+  instruction_iteration:
     for (auto it = basicblock.begin(), end = basicblock.end(); it != end; ++it) {
       auto inst = llvm::cast<llvm::Instruction>(it);
 
@@ -98,21 +94,15 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
         // TODO: System for usOhers to register new function recognizers here
         auto funcName = calledFunc->getName();
         bool recognised = false;
-        for (const auto &modeller : modellers) {
-          auto repr = modeller->getFuncIRRepr(it, callInst, funcName);
-          if (!repr.empty()) {
-            instructions.insert(instructions.end(), repr.begin(), repr.end());
-            recognised = true;
-          }
+        auto modellerIter = modellers.begin();
+        while (modellerIter != modellers.end() && !recognised) {
+          recognised = modellerIter->get()->addFuncIRRepr(instructions, it, callInst, funcName);
+          ++modellerIter;
         }
-        if (recognised) continue;
-        if (isPrintf(funcName)) {
-          // TODO: model as read?
-        } else if (isLLVMDebug(funcName)) {
-          // Skip
-        } else {
+
+        if (!recognised) {
           // push it, but don't do anything else with it
-          instructions.push_back(std::make_shared<CallIR>(callInst));
+          instructions.push_back(std::make_shared<race::CallIR>(callInst));
         }
       }
     }
