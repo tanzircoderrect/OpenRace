@@ -50,7 +50,7 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
   // TODO move this to a field in a function summary generator type
   std::vector<std::shared_ptr<const LanguageModeller>> modellers = {std::make_shared<OpenMPModel::Modeller>(),
                                                                     std::make_shared<PthreadModel::Modeller>(),
-                                                                    /* std::make_shared<IntrinsicModel::Modeller>() */};
+                                                                    std::make_shared<IntrinsicModel::Modeller>()};
   FunctionSummary instructions;
 
   for (auto const &basicblock : func.getBasicBlockList()) {
