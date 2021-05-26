@@ -138,8 +138,9 @@ bool inSame(const Event* event1, const Event* event2) {
   return false;
 }
 
-auto const _inSameSingleBlock = inSame<IR::Type::OpenMPSingleStart, IR::Type::OpenMPSingleEnd>;
-auto const _inMasterBlock = in<IR::Type::OpenMPMasterStart, IR::Type::OpenMPMasterEnd>;
+auto constexpr _inSameSingleBlock = inSame<IR::Type::OpenMPSingleStart, IR::Type::OpenMPSingleEnd>;
+auto constexpr _inMasterBlock = in<IR::Type::OpenMPMasterStart, IR::Type::OpenMPMasterEnd>;
+auto constexpr _inSameFor = inSame<IR::Type::OpenMPForInit, IR::Type::OpenMPForFini>;
 
 }  // namespace
 
@@ -304,4 +305,47 @@ bool OpenMPAnalysis::inSameReduce(const Event* event1, const Event* event2) cons
   }
 
   return false;
+}
+
+SectionCache::SectionRange SectionCache::getSectionBlocks(const llvm::Instruction* instruction) {
+  // TODO compute and memoize section blocks
+  return this->sectionMappings.equal_range(instruction->getParent());
+}
+
+bool OpenMPAnalysis::inCompatibleSections(const Event* event1, const Event* event2) {
+  auto ev1sections = sectionCache.getSectionBlocks(event1->getInst());
+  auto ev2sections = sectionCache.getSectionBlocks(event2->getInst());
+
+  if (ev1sections.first == ev1sections.second || ev2sections.first == ev2sections.second) {
+    return false; // at least one of them isn't even in a section
+  }
+
+  // get the predecessors; sorted by preds, then by block; multimap doesn't guarantee value order
+  std::set<std::pair<const llvm::BasicBlock*, const llvm::BasicBlock*>> ev1secPreds;
+  std::set<std::pair<const llvm::BasicBlock*, const llvm::BasicBlock*>> ev2secPreds;
+  std::transform(ev1sections.first, ev1sections.second, std::inserter(ev1secPreds, ev1secPreds.end()),
+                 [](auto& section) {
+                   assert(section.second->hasNPredecessors(1));
+                   return std::pair<const llvm::BasicBlock*, const llvm::BasicBlock*>(
+                       section.second->getSinglePredecessor(), section.second);
+                 });
+  std::transform(ev2sections.first, ev2sections.second, std::inserter(ev2secPreds, ev2secPreds.end()),
+                 [](auto& section) {
+                   assert(section.second->hasNPredecessors(1));
+                   return std::pair<const llvm::BasicBlock*, const llvm::BasicBlock*>(
+                       section.second->getSinglePredecessor(), section.second);
+                 });
+
+  // we care about when the parent is the same, but the section is different
+  std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*> races;
+  std::set_intersection(ev1secPreds.begin(), ev1secPreds.end(),
+                                ev2secPreds.begin(), ev2secPreds.end(),
+                                std::inserter(races, races.end()),
+                                [](auto &pred1, auto &pred2) {
+                                  // negated as this is not a predicate, but a comparison
+                                  // eq is (!comp(a,b) && !comp(b,a))
+                                  return !(pred1.first == pred2.first && pred1.second != pred2.second);
+                                });
+
+  return races.empty();
 }

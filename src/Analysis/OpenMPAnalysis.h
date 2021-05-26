@@ -44,11 +44,26 @@ class ReduceAnalysis {
   bool reduceContains(const llvm::Instruction* reduce, const llvm::Instruction* inst) const;
 };
 
+class SectionCache {
+  std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*> sectionMappings;
+
+ public:
+  typedef std::pair<std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*>::const_iterator,
+      std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*>::const_iterator>
+      SectionRange;
+
+  SectionRange getSectionBlocks(const llvm::Instruction*);
+
+};
+
 class OpenMPAnalysis {
   llvm::PassBuilder PB;
   llvm::FunctionAnalysisManager FAM;
 
   ReduceAnalysis reduceAnalysis;
+
+  // THREADSAFETY: mark threadprivate or use a concurrent multimap if we use this analysis concurrently
+  SectionCache sectionCache;
 
   // Start/End of omp loop
   using LoopRegion = Region;
@@ -84,6 +99,10 @@ class OpenMPAnalysis {
   // return true if both events are inside of the same master region
   // similar with single; only one thread executes
   bool bothInMasterBlock(const Event* event1, const Event* event2) const;
+
+  // return true if both events are contained within the same section
+  // similar to single
+  bool inCompatibleSections(const Event* event1, const Event* event2);
 };
 
 }  // namespace race

@@ -26,6 +26,7 @@ TEST_CASE("OpenMP Integration Tests", "[integration][omp]") {
              }),
       Oracle("master-used-after-yes.ll", {"master-used-after-yes.c:11:9 master-used-after-yes.c:14:22"}),
       Oracle("single-used-after-no.ll", {}),
+      Oracle("multiple-sections-no.ll", {}),
   };
 
   checkOracles(oracles, "integration/openmp/");
