@@ -12,6 +12,7 @@ limitations under the License.
 #include "IR/Builder.h"
 
 #include <llvm/Analysis/PostDominators.h>
+#include <llvm/Analysis/ScopedNoAliasAA.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Instructions.h>
 
@@ -75,14 +76,12 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
 
       // TODO: try switch on inst->getOpCode instead
       if (auto loadInst = llvm::dyn_cast<llvm::LoadInst>(inst)) {
-        if (loadInst->isAtomic() || loadInst->isVolatile() || hasNoAliasMD(loadInst) ||
-            hasThreadLocalOperand(loadInst)) {
+        if (loadInst->isAtomic() || loadInst->isVolatile() || hasThreadLocalOperand(loadInst)) {
           continue;
         }
         instructions.push_back(std::make_shared<race::Load>(loadInst));
       } else if (auto storeInst = llvm::dyn_cast<llvm::StoreInst>(inst)) {
-        if (storeInst->isAtomic() || storeInst->isVolatile() || hasNoAliasMD(storeInst) ||
-            hasThreadLocalOperand(storeInst)) {
+        if (storeInst->isAtomic() || storeInst->isVolatile() || hasThreadLocalOperand(storeInst)) {
           continue;
         }
         instructions.push_back(std::make_shared<race::Store>(storeInst));
