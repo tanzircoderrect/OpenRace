@@ -92,14 +92,12 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
 
         // TODO: System for usOhers to register new function recognizers here
         auto funcName = calledFunc->getName();
-        bool recognised = false;
-        auto modellerIter = modellers.begin();
-        while (modellerIter != modellers.end() && !recognised) {
-          recognised = modellerIter->get()->addFuncIRRepr(instructions, it, callInst, funcName);
-          ++modellerIter;
-        }
 
-        if (!recognised) {
+        bool anyAdded = std::any_of(modellers.begin(), modellers.end(), [&](auto &modeller) {
+          return modeller->addFuncIRRepr(instructions, it, callInst, funcName);
+        });
+
+        if (!anyAdded) {
           // push it, but don't do anything else with it
           instructions.push_back(std::make_shared<race::CallIR>(callInst));
         }
