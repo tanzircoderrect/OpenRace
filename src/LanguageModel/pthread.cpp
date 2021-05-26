@@ -13,9 +13,18 @@ limitations under the License.
 
 namespace PthreadModel {
 
-std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::BasicBlock::const_iterator& it,
-                                                                     const llvm::CallBase* callInst,
-                                                                     const llvm::StringRef& funcName) const {
+bool isPthreadCreate(const llvm::StringRef &funcName) { return funcName.equals("pthread_create"); }
+
+inline bool isPthreadJoin(const llvm::StringRef &funcName) { return funcName.equals("pthread_join"); }
+inline bool isPthreadMutexLock(const llvm::StringRef &funcName) { return funcName.equals("pthread_mutex_lock"); }
+inline bool isPthreadMutexUnlock(const llvm::StringRef &funcName) { return funcName.equals("pthread_mutex_unlock"); }
+inline bool isPthreadSpinLock(const llvm::StringRef &funcName) { return funcName.equals("pthread_spin_lock"); }
+inline bool isPthreadSpinUnlock(const llvm::StringRef &funcName) { return funcName.equals("pthread_spin_unlock"); }
+inline bool isPthreadOnce(const llvm::StringRef &funcName) { return funcName.equals("pthread_once"); }
+
+std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::BasicBlock::const_iterator &it,
+                                                                     const llvm::CallBase *callInst,
+                                                                     const llvm::StringRef &funcName) const {
   std::vector<std::shared_ptr<const race::IR>> instructions;
   if (isPthreadCreate(funcName)) {
     instructions.push_back(std::make_shared<PthreadCreate>(callInst));

@@ -20,6 +20,8 @@ limitations under the License.
 
 namespace PthreadModel {
 
+bool isPthreadCreate(const llvm::StringRef &funcName);
+
 class Modeller : public LanguageModeller {
  public:
   [[nodiscard]] std::vector<std::shared_ptr<const race::IR>> getFuncIRRepr(
@@ -27,13 +29,6 @@ class Modeller : public LanguageModeller {
       const llvm::StringRef &funcName) const override;
 };
 
-inline bool isPthreadCreate(const llvm::StringRef &funcName) { return funcName.equals("pthread_create"); }
-inline bool isPthreadJoin(const llvm::StringRef &funcName) { return funcName.equals("pthread_join"); }
-inline bool isPthreadMutexLock(const llvm::StringRef &funcName) { return funcName.equals("pthread_mutex_lock"); }
-inline bool isPthreadMutexUnlock(const llvm::StringRef &funcName) { return funcName.equals("pthread_mutex_unlock"); }
-inline bool isPthreadSpinLock(const llvm::StringRef &funcName) { return funcName.equals("pthread_spin_lock"); }
-inline bool isPthreadSpinUnlock(const llvm::StringRef &funcName) { return funcName.equals("pthread_spin_unlock"); }
-inline bool isPthreadOnce(const llvm::StringRef &funcName) { return funcName.equals("pthread_once"); }
 class PthreadCreate : public race::ForkIR {
   constexpr static unsigned int threadHandleOffset = 0;
   constexpr static unsigned int threadEntryOffset = 2;

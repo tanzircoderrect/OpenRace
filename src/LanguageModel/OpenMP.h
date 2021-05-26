@@ -21,64 +21,15 @@ limitations under the License.
 
 namespace OpenMPModel {
 
+bool isFork(const llvm::StringRef& funcName);
+bool isFork(const llvm::CallBase* callInst);
+
 class Modeller : public LanguageModeller {
  public:
   [[nodiscard]] std::vector<std::shared_ptr<const race::IR>> getFuncIRRepr(
       llvm::BasicBlock::const_iterator& it, const llvm::CallBase* callInst,
       const llvm::StringRef& funcName) const override;
 };
-
-namespace {
-// return true of funcName equals any name in names
-bool matchesAny(const llvm::StringRef& funcName, const std::vector<llvm::StringRef>& names) {
-  for (auto const& name : names) {
-    if (funcName.equals(name)) return true;
-  }
-  return false;
-}
-}  // namespace
-
-inline bool isFork(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_fork_call"); }
-inline bool isFork(const llvm::CallBase* callInst) {
-  if (!callInst) return false;
-  auto const func = callInst->getCalledFunction();
-  if (!func->hasName()) return false;
-  return isFork(func->getName());
-}
-
-inline bool isForStaticInit(const llvm::StringRef& funcName) {
-  // Each version functions the same, only argument types slightly differ
-  return matchesAny(funcName, {"__kmpc_for_static_init_4", "__kmpc_for_static_init_4u", "__kmpc_for_static_init_8",
-                               "__kmpc_for_static_init_8u"});
-}
-inline bool isForStaticFini(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_for_static_fini"); }
-
-inline bool isSingleStart(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_single"); }
-inline bool isSingleEnd(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_end_single"); }
-
-inline bool isBarrier(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_barrier"); }
-
-inline bool isReduceStart(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_reduce"); }
-inline bool isReduceEnd(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_end_reduce"); }
-
-inline bool isReduceNowaitStart(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_reduce_nowait"); }
-inline bool isReduceNowaitEnd(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_end_reduce_nowait"); }
-
-inline bool isCriticalStart(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_critical"); }
-inline bool isCriticalEnd(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_end_critical"); }
-
-inline bool isMasterStart(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_master"); }
-inline bool isMasterEnd(const llvm::StringRef& funcName) { return funcName.equals("__kmpc_end_master"); }
-
-// Return true for omp calls that do not need to be modelled (e.g. push_num_threads)
-inline bool isNoEffect(const llvm::StringRef& funcName) {
-  return matchesAny(funcName, {"__kmpc_push_num_threads", "__kmpc_global_thread_num"})
-         // we dont rely on reduce end to find end of reduce region
-         || isReduceEnd(funcName) || isReduceNowaitEnd(funcName);
-}
-
-// Used only for debug to try and catch unhandled OpenMP calls
-inline bool isOpenMP(const llvm::StringRef& funcName) { return funcName.startswith("__kmpc"); }
 
 class OpenMPFork : public race::ForkIR {
   // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L262
