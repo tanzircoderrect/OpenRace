@@ -54,7 +54,6 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
   FunctionSummary instructions;
 
   for (auto const &basicblock : func.getBasicBlockList()) {
-  instruction_iteration:
     for (auto it = basicblock.begin(), end = basicblock.end(); it != end; ++it) {
       auto inst = llvm::cast<llvm::Instruction>(it);
 
