@@ -34,7 +34,7 @@ InterceptResult RaceModel::interceptFunction(const ctx *callerCtx, const ctx *ca
   }
 
   if (PthreadModel::isPthreadCreate(funcName)) {
-    PthreadModel::PthreadCreate create(llvm::cast<CallBase>(callsite));
+    PthreadModel::Create create(llvm::cast<CallBase>(callsite));
     auto callback = create.getThreadEntry()->stripPointerCasts();
     return {callback, InterceptResult::Option::EXPAND_BODY};
   }

@@ -106,7 +106,7 @@ class APIWrite : public WriteIR {
 // ==================================================================
 
 // LockIRImpl should not be used directly. Instead define a using alias.
-// See PthreadMutexLock below as an example.
+// See PthreadModel::MutexLock as an example.
 template <IR::Type T>
 class LockIRImpl : public LockIR {
   const unsigned int lockObjectOffset = 0;
@@ -130,7 +130,7 @@ class LockIRImpl : public LockIR {
 // ==================================================================
 
 // UnlockIRImpl should not be used directly. Instead define using alias.
-// See PthreadMutexUnlock below as an example.
+// See PthreadModel::MutexUnlock as an example.
 template <IR::Type T>
 class UnlockIRImpl : public UnlockIR {
   const unsigned int lockObjectOffset = 0;
@@ -158,7 +158,7 @@ class UnlockIRImpl : public UnlockIR {
 // =================================================================
 
 // CallIRImpl should not be used directly. Instead define using alias.
-// See OpenMPModel::ForInit below as an example.
+// See OpenMPModel::ForInit as an example.
 template <const IR::Type T>
 class CallIRImpl : public CallIR {
  public:

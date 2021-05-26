@@ -27,17 +27,17 @@ std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::Basic
                                                                      const llvm::StringRef &funcName) const {
   std::vector<std::shared_ptr<const race::IR>> instructions;
   if (isPthreadCreate(funcName)) {
-    instructions.push_back(std::make_shared<PthreadCreate>(callInst));
+    instructions.push_back(std::make_shared<Create>(callInst));
   } else if (isPthreadJoin(funcName)) {
-    instructions.push_back(std::make_shared<PthreadJoin>(callInst));
+    instructions.push_back(std::make_shared<Join>(callInst));
   } else if (isPthreadMutexLock(funcName)) {
-    instructions.push_back(std::make_shared<PthreadMutexLock>(callInst));
+    instructions.push_back(std::make_shared<MutexLock>(callInst));
   } else if (isPthreadMutexUnlock(funcName)) {
-    instructions.push_back(std::make_shared<PthreadMutexUnlock>(callInst));
+    instructions.push_back(std::make_shared<MutexUnlock>(callInst));
   } else if (isPthreadSpinLock(funcName)) {
-    instructions.push_back(std::make_shared<PthreadSpinLock>(callInst));
+    instructions.push_back(std::make_shared<SpinLock>(callInst));
   } else if (isPthreadSpinUnlock(funcName)) {
-    instructions.push_back(std::make_shared<PthreadSpinUnlock>(callInst));
+    instructions.push_back(std::make_shared<SpinUnlock>(callInst));
   }
   return instructions;
 }
