@@ -31,7 +31,7 @@ class Modeller : public LanguageModeller {
       const llvm::StringRef& funcName) const override;
 };
 
-class OpenMPFork : public race::ForkIR {
+class Fork : public race::ForkIR {
   // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L262
   // @param loc  source location information
   // @param argc  total number of arguments in the ellipsis
@@ -43,7 +43,7 @@ class OpenMPFork : public race::ForkIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit OpenMPFork(const llvm::CallBase* inst) : ForkIR(Type::OpenMPFork), inst(inst) {}
+  explicit Fork(const llvm::CallBase* inst) : ForkIR(Type::OpenMPFork), inst(inst) {}
 
   [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
 
@@ -60,11 +60,11 @@ class OpenMPFork : public race::ForkIR {
 };
 
 // This actually corresponds to a OpenMP fork instruction, as the fork call acts as both a fork and join in one call
-class OpenMPJoin : public race::JoinIR {
-  std::shared_ptr<OpenMPFork> fork;
+class Join : public race::JoinIR {
+  std::shared_ptr<Fork> fork;
 
  public:
-  explicit OpenMPJoin(const std::shared_ptr<OpenMPFork> fork) : JoinIR(Type::OpenMPJoin), fork(fork) {}
+  explicit Join(const std::shared_ptr<Fork> fork) : JoinIR(Type::OpenMPJoin), fork(fork) {}
 
   [[nodiscard]] inline const llvm::CallBase* getInst() const override { return fork->getInst(); }
 
@@ -74,7 +74,7 @@ class OpenMPJoin : public race::JoinIR {
   static inline bool classof(const IR* e) { return e->type == Type::OpenMPJoin; }
 };
 
-class OpenMPCriticalStart : public race::LockIR {
+class CriticalStart : public race::LockIR {
   // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L1157
   // @param loc  source location information
   // @param global_tid  global thread number
@@ -84,7 +84,7 @@ class OpenMPCriticalStart : public race::LockIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit OpenMPCriticalStart(const llvm::CallBase* call) : LockIR(Type::OpenMPCriticalStart), inst(call) {}
+  explicit CriticalStart(const llvm::CallBase* call) : LockIR(Type::OpenMPCriticalStart), inst(call) {}
 
   [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
 
@@ -95,7 +95,7 @@ class OpenMPCriticalStart : public race::LockIR {
   static inline bool classof(const IR* e) { return e->type == Type::OpenMPCriticalStart; }
 };
 
-class OpenMPCriticalEnd : public race::UnlockIR {
+class CriticalEnd : public race::UnlockIR {
   // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L1512
   // @param loc  source location information
   // @param global_tid  global thread number
@@ -105,7 +105,7 @@ class OpenMPCriticalEnd : public race::UnlockIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit OpenMPCriticalEnd(const llvm::CallBase* call) : UnlockIR(Type::OpenMPCriticalEnd), inst(call) {}
+  explicit CriticalEnd(const llvm::CallBase* call) : UnlockIR(Type::OpenMPCriticalEnd), inst(call) {}
 
   [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
 
@@ -117,24 +117,24 @@ class OpenMPCriticalEnd : public race::UnlockIR {
 };
 
 // https://github.com/llvm/llvm-project/blob/d32170dbd5b0d54436537b6b75beaf44324e0c28/openmp/runtime/src/kmp_csupport.cpp#L713
-class OpenMPBarrier : public race::BarrierIR {
+class Barrier : public race::BarrierIR {
   const llvm::CallBase* inst;
 
  public:
-  explicit OpenMPBarrier(const llvm::CallBase* call) : BarrierIR(Type::OpenMPBarrier), inst(call) {}
+  explicit Barrier(const llvm::CallBase* call) : BarrierIR(Type::OpenMPBarrier), inst(call) {}
 
   [[nodiscard]] inline const llvm::CallBase* getInst() const override { return inst; }
 };
 
-using OmpForInit = race::CallIRImpl<race::IR::Type::OpenMPForInit>;
-using OmpForFini = race::CallIRImpl<race::IR::Type::OpenMPForFini>;
+using ForInit = race::CallIRImpl<race::IR::Type::OpenMPForInit>;
+using ForFini = race::CallIRImpl<race::IR::Type::OpenMPForFini>;
 
-using OpenMPSingleStart = race::CallIRImpl<race::IR::Type::OpenMPSingleStart>;
-using OpenMPSingleEnd = race::CallIRImpl<race::IR::Type::OpenMPSingleEnd>;
+using SingleStart = race::CallIRImpl<race::IR::Type::OpenMPSingleStart>;
+using SingleEnd = race::CallIRImpl<race::IR::Type::OpenMPSingleEnd>;
 
-using OpenMPReduce = race::CallIRImpl<race::IR::Type::OpenMPReduce>;
+using Reduce = race::CallIRImpl<race::IR::Type::OpenMPReduce>;
 
-using OpenMPMasterStart = race::CallIRImpl<race::IR::Type::OpenMPMasterStart>;
-using OpenMPMasterEnd = race::CallIRImpl<race::IR::Type::OpenMPMasterEnd>;
+using MasterStart = race::CallIRImpl<race::IR::Type::OpenMPMasterStart>;
+using MasterEnd = race::CallIRImpl<race::IR::Type::OpenMPMasterEnd>;
 
 }  // namespace OpenMPModel

@@ -158,7 +158,7 @@ class UnlockIRImpl : public UnlockIR {
 // =================================================================
 
 // CallIRImpl should not be used directly. Instead define using alias.
-// See OmpForInit below as an example.
+// See OpenMPModel::ForInit below as an example.
 template <const IR::Type T>
 class CallIRImpl : public CallIR {
  public:

@@ -40,7 +40,7 @@ InterceptResult RaceModel::interceptFunction(const ctx *callerCtx, const ctx *ca
   }
 
   if (OpenMPModel::isFork(funcName)) {
-    OpenMPModel::OpenMPFork fork(llvm::cast<CallBase>(callsite));
+    OpenMPModel::Fork fork(llvm::cast<CallBase>(callsite));
     return {fork.getThreadEntry(), InterceptResult::Option::EXPAND_BODY};
   }
 

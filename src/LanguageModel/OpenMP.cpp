@@ -62,7 +62,7 @@ inline bool isOpenMP(const llvm::StringRef& funcName) { return funcName.startswi
 
 // Assuming ompForkCall points to a OpenMP fork call, the next inst should be a duplicate omp fork call
 // this returns that omp fork or null if the next inst is not a omp fork call
-std::shared_ptr<OpenMPFork> getTwinOmpFork(const llvm::CallBase* ompForkCall) {
+std::shared_ptr<Fork> getTwinOmpFork(const llvm::CallBase* ompForkCall) {
   auto next = ompForkCall->getNextNode();
   if (!next) return nullptr;
 
@@ -73,7 +73,7 @@ std::shared_ptr<OpenMPFork> getTwinOmpFork(const llvm::CallBase* ompForkCall) {
   if (!twinCallInst) return nullptr;
   if (!OpenMPModel::isFork(twinCallInst)) return nullptr;
 
-  return std::make_shared<OpenMPFork>(twinCallInst);
+  return std::make_shared<Fork>(twinCallInst);
 }
 
 std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::BasicBlock::const_iterator& it,
@@ -81,30 +81,30 @@ std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::Basic
                                                                      const llvm::StringRef& funcName) const {
   std::vector<std::shared_ptr<const race::IR>> instructions;
   if (isForStaticInit(funcName)) {
-    instructions.push_back(std::make_shared<OmpForInit>(callInst));
+    instructions.push_back(std::make_shared<ForInit>(callInst));
   } else if (isForStaticFini(funcName)) {
-    instructions.push_back(std::make_shared<OmpForFini>(callInst));
+    instructions.push_back(std::make_shared<ForFini>(callInst));
   } else if (isSingleStart(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPSingleStart>(callInst));
+    instructions.push_back(std::make_shared<SingleStart>(callInst));
   } else if (isSingleEnd(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPSingleEnd>(callInst));
+    instructions.push_back(std::make_shared<SingleEnd>(callInst));
   } else if (isMasterStart(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPMasterStart>(callInst));
+    instructions.push_back(std::make_shared<MasterStart>(callInst));
   } else if (isMasterEnd(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPMasterEnd>(callInst));
+    instructions.push_back(std::make_shared<MasterEnd>(callInst));
   } else if (isBarrier(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPBarrier>(callInst));
+    instructions.push_back(std::make_shared<Barrier>(callInst));
   } else if (isReduceStart(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPReduce>(callInst));
+    instructions.push_back(std::make_shared<Reduce>(callInst));
   } else if (isReduceNowaitStart(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPReduce>(callInst));
+    instructions.push_back(std::make_shared<Reduce>(callInst));
   } else if (isCriticalStart(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPCriticalStart>(callInst));
+    instructions.push_back(std::make_shared<CriticalStart>(callInst));
   } else if (isCriticalEnd(funcName)) {
-    instructions.push_back(std::make_shared<OpenMPCriticalEnd>(callInst));
+    instructions.push_back(std::make_shared<CriticalEnd>(callInst));
   } else if (isFork(funcName)) {
     // duplicate omp preprocessing should duplicate all omp fork calls
-    auto ompFork = std::make_shared<OpenMPFork>(callInst);
+    auto ompFork = std::make_shared<Fork>(callInst);
     auto twinOmpFork = getTwinOmpFork(callInst);
     if (!twinOmpFork) {
       // without duplicated fork we cannot detect any races in omp region so just skip it
@@ -121,8 +121,8 @@ std::vector<std::shared_ptr<const race::IR>> Modeller::getFuncIRRepr(llvm::Basic
     instructions.push_back(twinOmpFork);
 
     // omp fork has implicit join, so immediately join both threads
-    instructions.push_back(std::make_shared<OpenMPJoin>(ompFork));
-    instructions.push_back(std::make_shared<OpenMPJoin>(twinOmpFork));
+    instructions.push_back(std::make_shared<Join>(ompFork));
+    instructions.push_back(std::make_shared<Join>(twinOmpFork));
   } else {
     // Used to make sure we are not implicitly ignoring any OpenMP features
     // We should instead make sure we take the correct action for any OpenMP call

@@ -67,9 +67,9 @@ declare void @__kmpc_fork_call(%struct.ident_t*, i32, void (i32*, i32*, ...)*, .
 
   // Duplicated fork calls need different thread handles to be distinguished
   auto const summary = race::generateFunctionSummary(module->getFunction("main"));
-  auto const fork1 = llvm::dyn_cast<OpenMPModel::OpenMPFork>(summary.at(0).get());
+  auto const fork1 = llvm::dyn_cast<OpenMPModel::Fork>(summary.at(0).get());
   REQUIRE(fork1 != nullptr);
-  auto const fork2 = llvm::dyn_cast<OpenMPModel::OpenMPFork>(summary.at(1).get());
+  auto const fork2 = llvm::dyn_cast<OpenMPModel::Fork>(summary.at(1).get());
   REQUIRE(fork2 != nullptr);
   UNSCOPED_INFO("Duplicated fork should have different handle");
   CHECK(fork1->getThreadHandle() != fork2->getThreadHandle());
