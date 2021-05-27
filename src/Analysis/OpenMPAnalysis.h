@@ -45,15 +45,17 @@ class ReduceAnalysis {
 };
 
 class SectionCache {
+  // these blocks are known to not be members of sections
+  std::set<const llvm::BasicBlock*> unsectioned;
+  // these blocks are used by one to many sections
   std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*> sectionMappings;
 
  public:
   typedef std::pair<std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*>::const_iterator,
-      std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*>::const_iterator>
+                    std::multimap<const llvm::BasicBlock*, const llvm::BasicBlock*>::const_iterator>
       SectionRange;
 
   SectionRange getSectionBlocks(const llvm::Instruction*);
-
 };
 
 class OpenMPAnalysis {
