@@ -728,7 +728,8 @@ SectionCache::SectionRange SectionCache::getSectionBlocks(const llvm::Instructio
         } else if (localCache.find(curr) != localCache.end()) {
           // inform that we want to copy it down, use end to get it erased
           path.emplace_back(curr, pred_end(curr));
-        } else if (this->sectionMappings.find(curr) != this->sectionMappings.end()) {  // check to see if the global cache has it
+        } else if (this->sectionMappings.find(curr) !=
+                   this->sectionMappings.end()) {  // check to see if the global cache has it
           // copy to local cache
           auto iterPair = this->sectionMappings.equal_range(curr);
           std::copy(iterPair.first, iterPair.second, std::inserter(localCache, localCache.end()));
