@@ -698,11 +698,78 @@ bool OpenMPAnalysis::inSameReduce(const Event *event1, const Event *event2) cons
 
 SectionCache::SectionRange SectionCache::getSectionBlocks(const llvm::Instruction *instruction) {
   auto block = instruction->getParent();
+  // we know for a fact that this block is not contained in a section
   if (this->unsectioned.find(block) != this->unsectioned.end()) {
     return std::make_pair(this->sectionMappings.end(), this->sectionMappings.end());
   }
   if (this->sectionMappings.find(block) == this->sectionMappings.end()) {
-    // TODO: effectively, BFS upward until we find a section block
+    // effectively, DFS upward until we find a section block, memoize the sections associated with block
+
+    // local cache of those discovered on this route
+    // keeps track of visited non-path members
+    std::multimap<const llvm::BasicBlock *, const llvm::BasicBlock *> localCache;
+    // bit of a weird type; to explain:
+    // this stack indicates the current path taken to the current item in the stack
+    // the second member denotes the current position in the iterator over the predecessors
+    std::deque<std::pair<const llvm::BasicBlock *, llvm::const_pred_iterator>> path;
+
+    auto curr = block;
+    for (;;) {
+      // first, ensure we aren't cycling in path or is known unsectioned
+      // if it is, don't add anything to the path so we continue to the next pred
+      if (std::none_of(path.begin(), path.end(), [&](const auto &pathEntry) { return curr == pathEntry.first; }) &&
+          this->unsectioned.find(curr) == this->unsectioned.end()) {
+        // TODO ensure section check is sane
+        if (curr->hasName() && curr->getName().startswith(".omp.sections.case")) {
+          // it's a section case!
+          localCache.emplace(curr, curr);
+          // inform that we want to copy it down, use end to get it erased
+          path.emplace_back(curr, pred_end(curr));
+        } else if (localCache.find(curr) != localCache.end()) {
+          // inform that we want to copy it down, use end to get it erased
+          path.emplace_back(curr, pred_end(curr));
+        } else if (this->sectionMappings.find(curr) != this->sectionMappings.end()) {  // check to see if the global cache has it
+          // copy to local cache
+          auto iterPair = this->sectionMappings.equal_range(curr);
+          std::copy(iterPair.first, iterPair.second, std::inserter(localCache, localCache.end()));
+          // inform that we want to copy it down, use end to get it erased
+          path.emplace_back(curr, pred_end(curr));
+        } else {
+          // we have to search; add to work queue
+          // if it doesn't have any preds, then it'll get picked up by the while loop below and marked unsectioned
+          // if it does have preds, it'll get picked up by the explore next pred if
+          path.emplace_back(curr, pred_begin(curr));
+        }
+      }
+      // merge the entries which we've finished exploring up a level
+      while (path.back().second == pred_end(path.back().first)) {
+        curr = path.back().first;
+        path.pop_back();
+        auto cached = localCache.equal_range(curr);
+        // if they're not in the local cache, then they're unsectioned
+        if (cached.first == cached.second) {
+          this->unsectioned.insert(curr);
+        }
+        if (!path.empty()) {
+          std::transform(cached.first, cached.second, std::inserter(localCache, localCache.end()),
+                         [&](const auto &mapping) {
+                           // elide curr to add the block mappings from curr to the previous node entry
+                           return std::make_pair(path.back().first, mapping.second);
+                         });
+        } else {
+          break;  // whoops, the path is empty; our search is complete
+        }
+      }
+      if (!path.empty()) {
+        // now explore the next predecessor
+        curr = *path.back().second;
+        path.back().second++;
+      } else {
+        break;
+      }
+    }
+    // copy the cache up
+    std::copy(localCache.begin(), localCache.end(), std::inserter(this->sectionMappings, this->sectionMappings.end()));
   }
 
   return this->sectionMappings.equal_range(block);
