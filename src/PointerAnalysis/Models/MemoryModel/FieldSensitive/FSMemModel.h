@@ -339,9 +339,9 @@ class FSMemModel {
     globOffset += DL.getTypeAllocSize(structTy);
   }
 
-  int allocatedCount;
-  const int ANON_REC_LIMIT = 999;
-  const int ANON_REC_DEPTH_LIMIT = 10;
+  unsigned int allocatedCount;
+  const unsigned int ANON_REC_LIMIT = 999;       // anonymous recursively created object
+  const unsigned int ANON_REC_DEPTH_LIMIT = 10;  // anonymous recursively created type
   template <typename PT>
   ObjNode *allocAnonObjRec(const ctx *C, const llvm::DataLayout &DL, llvm::Type *T, const llvm::Value *tag,
                            std::vector<const llvm::Type *> &typeTree) {
