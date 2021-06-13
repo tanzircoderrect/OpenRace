@@ -119,77 +119,72 @@ bool RaceModel::isCompatible(const llvm::Instruction * /* callsite */, const llv
   llvm_unreachable("unrecognizable function");
 }
 
-void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx>* caller, const CtxFunction<ctx>* callee,
-                                       const llvm::Instruction* callsite) {
+void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const CtxFunction<ctx> *callee,
+                                       const llvm::Instruction *callsite) {
   // GrB_Matrix_new and GB_new take a pointer pointer of a Matrix to initialize
   // therefore we need to create a fake pointer node representing the pointer of a Matrix
   if (heapModel.isHeapInitFun(callee->getFunction())) {
-      Type *type = callsite->getOperand(0)->getType()->getPointerElementType()->getPointerElementType();
-      PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite->getOperand(0));
-      PtrNode *fakePtr = this->createAnonPtrNode();
-      ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite, type);
+    Type *type = callsite->getOperand(0)->getType()->getPointerElementType()->getPointerElementType();
+    PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite->getOperand(0));
+    PtrNode *fakePtr = this->createAnonPtrNode();
+    ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite, type);
 
-      this->consGraph->addConstraints(obj, fakePtr, Constraints::addr_of);
-      this->consGraph->addConstraints(fakePtr, ptr, Constraints::store);
-      return;
+    this->consGraph->addConstraints(obj, fakePtr, Constraints::addr_of);
+    this->consGraph->addConstraints(fakePtr, ptr, Constraints::store);
+    return;
   } else if (heapModel.isHeapAllocFun(callee->getFunction())) {
-      if (callee->getFunction()->getName().equals(".coderrect.recursive.allocation")) {
-          Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
-
-          PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
-          ObjNode *obj = MMT::template allocateAnonObj<PT>(
-              this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
-              type == nullptr ? nullptr : type, callsite,
-              true);  // init the object recursively if it is an aggeragate type
-
-          this->consGraph->addConstraints(obj, ptr, Constraints::addr_of);
-          return;
-      }
-
-      if (OpenMPModel::isTaskAlloc(callee->getFunction()->getName())) {
-          // the type will be something like %struct.kmp_task_t_with_privates
-          Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
-
-          if (type == nullptr) {
-              LOG_ERROR("cannot infer type for omp task alloc? callsite={}", *callsite);
-              // return;
-          }
-
-          ObjNode *taskObj = allocHeapObj(caller->getContext(), callsite, type);
-          ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(
-              this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
-              type == nullptr ? nullptr : type->getPointerElementType(), nullptr,
-              false);  // do not initialized its element
-
-          // ObjNode *sharedObj = allocHeapObj(caller->getContext(), callsite, type->getPointerElementType());
-          PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
-
-          this->consGraph->addConstraints(sharedObj, taskObj, Constraints::addr_of);
-          this->consGraph->addConstraints(taskObj, ptr, Constraints::addr_of);
-
-          return;
-      }
-
-      if (callee->getFunction()->getName().equals("f90_alloc04_chka_i8") ||
-          callee->getFunction()->getName().equals("f90_ptr_alloc04a_i8")) {
-          PtrNode *ptr = this->getPtrNode(caller->getContext(), llvm::cast<CallBase>(callsite)->getArgOperand(4));
-          ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite,
-                                            getUnboundedArrayTy(IntegerType::get(callsite->getContext(), 8)));
-
-          this->consGraph->addConstraints(obj->getAddrTakenNode(), ptr, Constraints::store);
-          return;
-      }
-
+    if (callee->getFunction()->getName().equals(".coderrect.recursive.allocation")) {
       Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
+
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
-      ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite, type);
+      ObjNode *obj = MMT::template allocateAnonObj<PT>(
+        this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
+        type == nullptr ? nullptr : type, callsite,
+        true);  // init the object recursively if it is an aggeragate type
 
       this->consGraph->addConstraints(obj, ptr, Constraints::addr_of);
       return;
+    }
+
+    if (OpenMPModel::isTaskAlloc(callee->getFunction()->getName())) {
+      // the type will be something like %struct.kmp_task_t_with_privates
+      Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
+
+      if (type == nullptr) {
+        LOG_ERROR("cannot infer type for omp task alloc? callsite={}", *callsite);
+        // return;
+      }
+
+      ObjNode *taskObj = allocHeapObj(caller->getContext(), callsite, type);
+      ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(
+        this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
+        type == nullptr ? nullptr : type->getPointerElementType(), nullptr,
+        false);  // do not initialized its element
+
+      PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
+      this->consGraph->addConstraints(sharedObj, taskObj, Constraints::addr_of);
+      this->consGraph->addConstraints(taskObj, ptr, Constraints::addr_of);
+
+      return;
+    }
+    if (callee->getFunction()->getName().equals("f90_alloc04_chka_i8") ||
+        callee->getFunction()->getName().equals("f90_ptr_alloc04a_i8")) {
+        PtrNode *ptr = this->getPtrNode(caller->getContext(), llvm::cast<CallBase>(callsite)->getArgOperand(4));
+        ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite,
+                          getUnboundedArrayTy(IntegerType::get(callsite->getContext(), 8)));
+
+        this->consGraph->addConstraints(obj->getAddrTakenNode(), ptr, Constraints::store);
+        return;
+    }
+
+    Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
+    PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
+    ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite, type);
+
+    this->consGraph->addConstraints(obj, ptr, Constraints::addr_of);
+    return;
   }
   return;
-
-                                       
 }
 
 bool RaceModel::isHeapAllocAPI(const llvm::Function *F, const llvm::Instruction * /* callsite */) {
