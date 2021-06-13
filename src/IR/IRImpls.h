@@ -10,7 +10,6 @@ limitations under the License.
 ==============================================================================*/
 
 #pragma once
-
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/CallSite.h>
 #include "IR/IR.h"
@@ -166,16 +165,16 @@ class OpenMPTask : public ForkIR {
     auto op = inst->getArgOperand(2)->stripPointerCasts();
     auto taskAlloc = llvm::dyn_cast<llvm::CallBase>(op);
     if (!taskAlloc || !taskAlloc->getCalledFunction()->getName().equals("__kmpc_omp_task_alloc")) {
-        // LOG_DEBUG("Failed to find task function. inst={}", *taskCallSite.getInstruction());
-        return nullptr;
+      // LOG_DEBUG("Failed to find task function. inst={}", *taskCallSite.getInstruction());
+      return nullptr;
     }
-    llvm::CallSite taskAllocCall (llvm::cast<llvm::Instruction>(op));
+    llvm::CallSite taskAllocCall(llvm::cast<llvm::Instruction>(op));
     auto taskFunc = taskAllocCall.getArgOperand(5)->stripPointerCasts();
     return llvm::cast<llvm::Function>(taskFunc);
   }
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::OpenMPTask; }
+  static inline bool classof(const IR *e) { return e->type == Type::OpenMPTask;}
 };
 
 
