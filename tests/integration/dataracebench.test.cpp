@@ -59,7 +59,13 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // DRB 24 and 25 are simd
       // DRB 26 is target
       // DRB 27 is task
-
+       Oracle("DRB027-taskdependmissing-orig-yes.ll",
+             {"DRB027-taskdependmissing-orig-yes.c:61:7 DRB027-taskdependmissing-orig-yes.c:61:7",
+              "DRB027-taskdependmissing-orig-yes.c:61:7 DRB027-taskdependmissing-orig-yes.c:63:7",
+              "DRB027-taskdependmissing-orig-yes.c:63:7 DRB027-taskdependmissing-orig-yes.c:61:7",
+              "DRB027-taskdependmissing-orig-yes.c:63:7 DRB027-taskdependmissing-orig-yes.c:63:7",
+              "DRB027-taskdependmissing-orig-yes.c:63:7 DRB027-taskdependmissing-orig-yes.c:66:20"}),
+      
       // FIXME: the racy object is opted out by SROA
       //      Oracle("DRB028-privatemissing-orig-yes.ll",
       //             {"DRB028-privatemissing-orig-yes.c:65:9 DRB028-privatemissing-orig-yes.c:65:9",
