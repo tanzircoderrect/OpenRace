@@ -472,9 +472,9 @@ std::vector<Region> getRegions(const ThreadTrace &thread) {
   for (auto const &event : thread.getEvents()) {
     switch (event->getIRInst()->type) {
       case Start: {
-        if (event->getIRInst()->type != IR::Type::OpenMPSingleStart)
+        if (event->getIRInst()->type != IR::Type::OpenMPSingleStart) {
           assert(!start.has_value() && "encountered two start types in a row");
-        
+        }
         start = event->getID();
         break;
       }
@@ -482,8 +482,9 @@ std::vector<Region> getRegions(const ThreadTrace &thread) {
         assert(start.has_value() && "encountered end type without a matching start type");
         regions.emplace_back(start.value(), event->getID());
          // hack for kmpc_end_task showing 2ice, must be fixed in general
-        if (event->getIRInst()->type != IR::Type::OpenMPSingleEnd)
+        if (event->getIRInst()->type != IR::Type::OpenMPSingleEnd) {
           start.reset();
+        }
         break;
       }
       default:

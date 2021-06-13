@@ -174,7 +174,7 @@ class OpenMPTask : public ForkIR {
   }
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { return e->type == Type::OpenMPTask;}
+  static inline bool classof(const IR *e) { return e->type == Type::OpenMPTask; }
 };
 
 

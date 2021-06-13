@@ -85,10 +85,8 @@ public:
   inline bool isHeapAllocFun(const llvm::Function *fun) const {
     if (fun->hasName()) {
       return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) ||
-            isHeapInitFun(fun) || // any function in interceptHeapAllocation is heap alloc function
-            HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end();
-            //USER_HEAP_API.find(fun->getName().split(".").first) != USER_HEAP_API.end();
-    }
+        isHeapInitFun(fun) || HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end();
+      }
     return false;
   }
 
@@ -107,7 +105,7 @@ public:
       return nullptr;
     }
     if (fun->getName().equals(".coderrect.recursive.allocation") ||
-        fun->getName().equals(".coderrect.allocation.api") /*|| USER_HEAP_API.find(fun->getName().split(".").first) != USER_HEAP_API.end()*/) {
+        fun->getName().equals(".coderrect.allocation.api")) {
       // user specified APIs
       // we do not know which args is used for size
       // model them as *unlimited* unbounded array by passing -1 to sizeArgNo
@@ -150,7 +148,6 @@ public:
       }
       return nullptr;
     }
-
     // TODO: move the following two to configuration!!
     if (fun->getName().equals("GB_calloc_memory")) {
       // calloc memory
@@ -160,7 +157,6 @@ public:
     if (fun->getName().equals("GB_malloc_memory")) {
       return DefaultHeapModel::inferMallocType(fun, allocSite);
     }
-
     //LOG_WARN("can not infer type for heap. type={}", *allocSite);
     return nullptr;
   }
