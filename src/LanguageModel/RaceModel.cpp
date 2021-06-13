@@ -101,8 +101,7 @@ bool RaceModel::interceptCallSite(const CtxFunction<ctx> *caller, const CtxFunct
   }
   if (OpenMPModel::isTask(funcName)) {
     // Link 3rd arg of __kmpc_omp_task (kmp_tsking.cpp:1684)
-    // With generated task function's 2nd argument that is heap allocated 
-    // struct containing pointers to the shared variables
+    // with generated task function's 2nd argument 
     auto calleeArg = callee->getFunction()->args().begin(); 
     std::advance(calleeArg, 1);
     PtrNode *formal = this->getPtrNode(callee->getContext(), calleeArg);
@@ -190,7 +189,7 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
 bool RaceModel::isHeapAllocAPI(const llvm::Function *F, const llvm::Instruction * /* callsite */) {
   if (!F->hasName()) return false;
   auto const name = F->getName();
-  return name.equals("malloc") || name.equals("calloc") || name.equals("_Zname") || name.equals("_Znwm")  || name.equals("__kmpc_omp_task_alloc");
+  return name.equals("malloc") || name.equals("calloc") || name.equals("_Zname") || name.equals("_Znwm") || name.equals("__kmpc_omp_task_alloc");
 }
 
 namespace {

@@ -10,7 +10,6 @@ limitations under the License.
 ==============================================================================*/
 
 #pragma once
-#include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/PatternMatch.h>
 #include "PointerAnalysis/Program/CallSite.h"
@@ -84,8 +83,7 @@ class GraphBLASHeapModel : public DefaultHeapModel {
 
   inline bool isHeapAllocFun(const llvm::Function *fun) const {
     if (fun->hasName()) {
-      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || 
-        isHeapInitFun(fun) || HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end();
+      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || isHeapInitFun(fun) || HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end();
     }
     return false;
   }
@@ -132,12 +130,14 @@ class GraphBLASHeapModel : public DefaultHeapModel {
         for (auto &I : BB) {
           // simple pattern matching
           // find a bitcast instruction which follows the following pattern
-          // %3 = getelementptr inbounds %struct.kmp_task_t_with_privates, %struct.kmp_task_t_with_privates* %1, i32 0, i32 0
-          // %4 = getelementptr inbounds %struct.kmp_task_t, %struct.kmp_task_t* %3, i32 0, i32 0
-          // %5 = load i8*, i8** %4
-          // %6 = bitcast i8* %5 to %struct.anon*
+          /* 
+          %3 = getelementptr inbounds %struct.kmp_task_t_with_privates, %struct.kmp_task_t_with_privates* %1, i32 0, i32 0
+          %4 = getelementptr inbounds %struct.kmp_task_t, %struct.kmp_task_t* %3, i32 0, i32 0
+          %5 = load i8*, i8** %4
+          %6 = bitcast i8* %5 to %struct.anon*/
           llvm::Value *srcOp = nullptr;
-          if (llvm::PatternMatch::match(&I, llvm::PatternMatch::m_BitCast(llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
+          if (llvm::PatternMatch::match(&I, llvm::PatternMatch::m_BitCast(
+            llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
             if (srcOp->stripPointerCasts() == &task) {
               // this is the bitcast we try to found
               return llvm::cast<llvm::BitCastInst>(I).getDestTy();
