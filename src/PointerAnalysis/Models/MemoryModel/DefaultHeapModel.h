@@ -67,14 +67,14 @@ class DefaultHeapModel {
 };
 
 class GraphBLASHeapModel : public DefaultHeapModel {
-private:
+ private:
   // TODO: we can get rid of it! and use conflib for this!!
   const std::set<llvm::StringRef> HEAP_ALLOCATIONS{"GB_malloc_memory", "GB_calloc_memory"};
   const std::set<llvm::StringRef> HEAP_INITS{"GrB_Matrix_new", "GB_new"};
   // the set of APIs specified by users
   static std::set<llvm::StringRef> USER_HEAP_API;
 
-public:
+ public:
   // TODO: ensure that the user specified APIs return pointers!!
   static inline void init(std::vector<std::string> &heapAPIs) {
     for (auto &api : heapAPIs) {
@@ -84,9 +84,9 @@ public:
 
   inline bool isHeapAllocFun(const llvm::Function *fun) const {
     if (fun->hasName()) {
-      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) ||
+      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || 
         isHeapInitFun(fun) || HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end();
-      }
+    }
     return false;
   }
 
@@ -123,7 +123,7 @@ public:
       auto taskEntry = llvm::cast<llvm::Function>(taskAllocCall.getArgOperand(5)->stripPointerCasts());
       int64_t sharedSize = llvm::cast<llvm::ConstantInt>(taskAllocCall.getArgOperand(4))->getSExtValue();
       if (sharedSize == 0) {
-          return nullptr;
+        return nullptr;
       }
 
       // the bitcast on the omp.task_t is the type of the allocated object
@@ -137,8 +137,7 @@ public:
           // %5 = load i8*, i8** %4
           // %6 = bitcast i8* %5 to %struct.anon*
           llvm::Value *srcOp = nullptr;
-          if (llvm::PatternMatch::match(&I, llvm::PatternMatch::m_BitCast(
-                          llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
+          if (llvm::PatternMatch::match(&I, llvm::PatternMatch::m_BitCast(llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
             if (srcOp->stripPointerCasts() == &task) {
               // this is the bitcast we try to found
               return llvm::cast<llvm::BitCastInst>(I).getDestTy();
@@ -157,7 +156,6 @@ public:
     if (fun->getName().equals("GB_malloc_memory")) {
       return DefaultHeapModel::inferMallocType(fun, allocSite);
     }
-    //LOG_WARN("can not infer type for heap. type={}", *allocSite);
     return nullptr;
   }
 };

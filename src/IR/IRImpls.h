@@ -10,6 +10,7 @@ limitations under the License.
 ==============================================================================*/
 
 #pragma once
+
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/CallSite.h>
 #include "IR/IR.h"
