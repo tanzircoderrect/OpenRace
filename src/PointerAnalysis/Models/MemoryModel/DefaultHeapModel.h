@@ -82,8 +82,8 @@ class GraphBLASHeapModel : public DefaultHeapModel {
 
   inline bool isHeapAllocFun(const llvm::Function *fun) const {
     if (fun->hasName()) {
-      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || isHeapInitFun(fun) || 
-              (HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end());
+      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || 
+              isHeapInitFun(fun) || (HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end());
     }
     return false;
   }
@@ -129,7 +129,9 @@ class GraphBLASHeapModel : public DefaultHeapModel {
       for (auto &BB : *taskEntry) {
         for (auto &I : BB) {
           llvm::Value *srcOp = nullptr;
-          if (llvm::PatternMatch::match(&I, llvm::PatternMatch::m_BitCast(llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
+          if (llvm::PatternMatch::match(&I, 
+              llvm::PatternMatch::m_BitCast(
+                llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
             if (srcOp->stripPointerCasts() == &task) {
               // this is the bitcast we try to found
               return llvm::cast<llvm::BitCastInst>(I).getDestTy();
