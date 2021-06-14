@@ -82,7 +82,8 @@ class GraphBLASHeapModel : public DefaultHeapModel {
 
   inline bool isHeapAllocFun(const llvm::Function *fun) const {
     if (fun->hasName()) {
-      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || isHeapInitFun(fun) || (HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end());
+      return DefaultHeapModel::isHeapAllocFun(fun) || OpenMPModel::isTaskAlloc(fun->getName()) || isHeapInitFun(fun) || 
+              (HEAP_ALLOCATIONS.find(fun->getName()) != HEAP_ALLOCATIONS.end());
     }
     return false;
   }

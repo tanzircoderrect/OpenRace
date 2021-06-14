@@ -135,7 +135,9 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
 
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
       // init the object recursively if it is an aggeragate type
-      ObjNode *obj = MMT::template allocateAnonObj<PT>(this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(), type == nullptr ? nullptr : type, callsite, true);  
+      ObjNode *obj = MMT::template allocateAnonObj<PT>(this->getMemModel(), caller->getContext(), 
+                                                      this->getLLVMModule()->getDataLayout(), 
+                                                      type == nullptr ? nullptr : type, callsite, true);  
       this->consGraph->addConstraints(obj, ptr, Constraints::addr_of);
       return;
     }
@@ -151,7 +153,11 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
 
       ObjNode *taskObj = allocHeapObj(caller->getContext(), callsite, type);
       // do not initialized its element
-      ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(), type == nullptr ? nullptr : type->getPointerElementType(), nullptr, false);  
+      ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(this->getMemModel(), caller->getContext(), 
+                                                            this->getLLVMModule()->getDataLayout(), 
+                                                            type == nullptr ? 
+                                                            nullptr : type->getPointerElementType(), 
+                                                            nullptr, false);  
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
       this->consGraph->addConstraints(sharedObj, taskObj, Constraints::addr_of);
       this->consGraph->addConstraints(taskObj, ptr, Constraints::addr_of);
@@ -160,10 +166,11 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
     }
     if (callee->getFunction()->getName().equals("f90_alloc04_chka_i8") ||
         callee->getFunction()->getName().equals("f90_ptr_alloc04a_i8")) {
-        PtrNode *ptr = this->getPtrNode(caller->getContext(), llvm::cast<CallBase>(callsite)->getArgOperand(4));
-        ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite, getUnboundedArrayTy(IntegerType::get(callsite->getContext(), 8)));
-        this->consGraph->addConstraints(obj->getAddrTakenNode(), ptr, Constraints::store);
-        return;
+      PtrNode *ptr = this->getPtrNode(caller->getContext(), llvm::cast<CallBase>(callsite)->getArgOperand(4));
+      ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite, 
+                      getUnboundedArrayTy(IntegerType::get(callsite->getContext(), 8)));
+      this->consGraph->addConstraints(obj->getAddrTakenNode(), ptr, Constraints::store);
+      return;
     }
     Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
     PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
@@ -179,7 +186,8 @@ bool RaceModel::isHeapAllocAPI(const llvm::Function *F, const llvm::Instruction 
     return false;
   }
   auto const name = F->getName();
-  return name.equals("malloc") || name.equals("calloc") || name.equals("_Zname") || name.equals("_Znwm") || name.equals("__kmpc_omp_task_alloc");
+  return name.equals("malloc") || name.equals("calloc") || name.equals("_Zname") || 
+          name.equals("_Znwm") || name.equals("__kmpc_omp_task_alloc");
 }
 
 namespace {
