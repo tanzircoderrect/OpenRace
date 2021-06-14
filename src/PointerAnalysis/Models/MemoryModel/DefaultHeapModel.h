@@ -128,16 +128,10 @@ class GraphBLASHeapModel : public DefaultHeapModel {
       const llvm::Argument &task = *(taskEntry->arg_begin() + 1);
       for (auto &BB : *taskEntry) {
         for (auto &I : BB) {
-          // simple pattern matching
-          // find a bitcast instruction which follows the following pattern
-          /* 
-          %3 = getelementptr inbounds %struct.kmp_task_t_with_privates, %struct.kmp_task_t_with_privates* %1, i32 0, i32 0
-          %4 = getelementptr inbounds %struct.kmp_task_t, %struct.kmp_task_t* %3, i32 0, i32 0
-          %5 = load i8*, i8** %4
-          %6 = bitcast i8* %5 to %struct.anon*/
           llvm::Value *srcOp = nullptr;
-          if (llvm::PatternMatch::match(&I, llvm::PatternMatch::m_BitCast(
-            llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
+          if (llvm::PatternMatch::match(
+                &I, llvm::PatternMatch::m_BitCast(
+                llvm::PatternMatch::m_Load(llvm::PatternMatch::m_Value(srcOp))))) {
             if (srcOp->stripPointerCasts() == &task) {
               // this is the bitcast we try to found
               return llvm::cast<llvm::BitCastInst>(I).getDestTy();

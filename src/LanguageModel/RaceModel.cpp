@@ -100,8 +100,7 @@ bool RaceModel::interceptCallSite(const CtxFunction<ctx> *caller, const CtxFunct
     return true;
   }
   if (OpenMPModel::isTask(funcName)) {
-    // Link 3rd arg of __kmpc_omp_task (kmp_tsking.cpp:1684)
-    // with generated task function's 2nd argument 
+    // Link 3rd arg of __kmpc_omp_task (kmp_tsking.cpp:1684) with generated task function's 2nd argument 
     auto calleeArg = callee->getFunction()->args().begin(); 
     std::advance(calleeArg, 1);
     PtrNode *formal = this->getPtrNode(callee->getContext(), calleeArg);
@@ -136,10 +135,11 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
       Type *type = heapModel.inferHeapAllocType(callee->getFunction(), callsite);
 
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
-      ObjNode *obj = MMT::template allocateAnonObj<PT>(
-        this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
-        type == nullptr ? nullptr : type, callsite,
-        true);  // init the object recursively if it is an aggeragate type
+      ObjNode *obj = MMT::template allocateAnonObj<PT>(this->getMemModel(), 
+                            caller->getContext(), 
+                            this->getLLVMModule()->getDataLayout(),
+                            type == nullptr ? nullptr : type, callsite,
+                            true);  // init the object recursively if it is an aggeragate type
 
       this->consGraph->addConstraints(obj, ptr, Constraints::addr_of);
       return;
@@ -156,9 +156,12 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
 
       ObjNode *taskObj = allocHeapObj(caller->getContext(), callsite, type);
       ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(
-        this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
-        type == nullptr ? nullptr : type->getPointerElementType(), nullptr,
-        false);  // do not initialized its element
+                              this->getMemModel(), 
+                              caller->getContext(), 
+                              this->getLLVMModule()->getDataLayout(),
+                              type == nullptr ? nullptr : type->getPointerElementType(), 
+                              nullptr,
+                              false);  // do not initialized its element
 
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
       this->consGraph->addConstraints(sharedObj, taskObj, Constraints::addr_of);
