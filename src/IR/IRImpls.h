@@ -11,6 +11,7 @@ limitations under the License.
 
 #pragma once
 #include <llvm/IR/CallSite.h>
+
 #include "IR/IR.h"
 
 namespace race {
@@ -173,11 +174,8 @@ class OpenMPTask : public ForkIR {
   }
 
   // Used for llvm style RTTI (isa, dyn_cast, etc.)
-  static inline bool classof(const IR *e) { 
-    return e->type == Type::OpenMPTask; 
-  }
+  static inline bool classof(const IR *e) { return e->type == Type::OpenMPTask; }
 };
-
 
 // ==================================================================
 // ================== JoinIR Implementations ========================

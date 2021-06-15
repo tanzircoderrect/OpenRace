@@ -15,8 +15,8 @@ limitations under the License.
 #include "PointerAnalysis/Context/KOrigin.h"
 #include "PointerAnalysis/Models/LanguageModel/DefaultLangModel/DefaultLangModel.h"
 #include "PointerAnalysis/Models/MemoryModel/CppMemModel/CppMemModel.h"
-#include "PointerAnalysis/Solver/PartialUpdateSolver.h"
 #include "PointerAnalysis/Models/MemoryModel/DefaultHeapModel.h"
+#include "PointerAnalysis/Solver/PartialUpdateSolver.h"
 
 namespace pta {
 using originCtx = KOrigin<3>;

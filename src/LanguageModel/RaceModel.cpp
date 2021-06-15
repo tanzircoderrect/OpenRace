@@ -101,7 +101,7 @@ bool RaceModel::interceptCallSite(const CtxFunction<ctx> *caller, const CtxFunct
   }
   if (OpenMPModel::isTask(funcName)) {
     // Link 3rd arg of __kmpc_omp_task (kmp_tsking.cpp:1684) with task functions 2nd
-    auto calleeArg = callee->getFunction()->arg_begin(); 
+    auto calleeArg = callee->getFunction()->arg_begin();
     std::advance(calleeArg, 1);
     PtrNode *formal = this->getPtrNode(callee->getContext(), calleeArg);
     PtrNode *actual = this->getPtrNode(caller->getContext(), call->getArgOperand(2));
@@ -135,11 +135,9 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
 
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
       // init the object recursively if it is an aggeragate type
-      ObjNode *obj = MMT::template allocateAnonObj<PT>(this->getMemModel(), 
-                                                      caller->getContext(), 
-                                                      this->getLLVMModule()->getDataLayout(), 
-                                                      type == nullptr ? nullptr : type, 
-                                                      callsite, true);  
+      ObjNode *obj = MMT::template allocateAnonObj<PT>(this->getMemModel(), caller->getContext(),
+                                                       this->getLLVMModule()->getDataLayout(),
+                                                       type == nullptr ? nullptr : type, callsite, true);
       this->consGraph->addConstraints(obj, ptr, Constraints::addr_of);
       return;
     }
@@ -155,11 +153,9 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
 
       ObjNode *taskObj = allocHeapObj(caller->getContext(), callsite, type);
       // do not initialized its element
-      ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(this->getMemModel(), 
-                                                            caller->getContext(), 
-                                                            this->getLLVMModule()->getDataLayout(), 
-                                                            type == nullptr ? nullptr : type->getPointerElementType(), 
-                                                            nullptr, false);  
+      ObjNode *sharedObj = MMT::template allocateAnonObj<PT>(
+          this->getMemModel(), caller->getContext(), this->getLLVMModule()->getDataLayout(),
+          type == nullptr ? nullptr : type->getPointerElementType(), nullptr, false);
       PtrNode *ptr = this->getPtrNode(caller->getContext(), callsite);
       this->consGraph->addConstraints(sharedObj, taskObj, Constraints::addr_of);
       this->consGraph->addConstraints(taskObj, ptr, Constraints::addr_of);
@@ -169,10 +165,8 @@ void RaceModel::interceptHeapAllocSite(const CtxFunction<ctx> *caller, const Ctx
     if (callee->getFunction()->getName().equals("f90_alloc04_chka_i8") ||
         callee->getFunction()->getName().equals("f90_ptr_alloc04a_i8")) {
       PtrNode *ptr = this->getPtrNode(caller->getContext(), llvm::cast<CallBase>(callsite)->getArgOperand(4));
-      ObjNode *obj = this->allocHeapObj(caller->getContext(), 
-                                        callsite, 
-                                        getUnboundedArrayTy(
-                                          IntegerType::get(callsite->getContext(), 8)));
+      ObjNode *obj = this->allocHeapObj(caller->getContext(), callsite,
+                                        getUnboundedArrayTy(IntegerType::get(callsite->getContext(), 8)));
       this->consGraph->addConstraints(obj->getAddrTakenNode(), ptr, Constraints::store);
       return;
     }
@@ -190,15 +184,14 @@ bool RaceModel::isHeapAllocAPI(const llvm::Function *F, const llvm::Instruction 
     return false;
   }
   auto const name = F->getName();
-  return name.equals("malloc") || name.equals("calloc") || 
-          name.equals("_Zname") || name.equals("_Znwm") || 
-          name.equals("__kmpc_omp_task_alloc");
+  return name.equals("malloc") || name.equals("calloc") || name.equals("_Zname") || name.equals("_Znwm") ||
+         name.equals("__kmpc_omp_task_alloc");
 }
 
 namespace {
 // TODO: better way of handling these
-const std::set<llvm::StringRef> origins{"pthread_create", "__kmpc_fork_call", 
-                                        "__kmpc_omp_task", "__kmpc_omp_task_alloc"};
+const std::set<llvm::StringRef> origins{"pthread_create", "__kmpc_fork_call", "__kmpc_omp_task",
+                                        "__kmpc_omp_task_alloc"};
 }  // namespace
 
 bool RaceModel::isInvokingAnOrigin(const originCtx * /* prevCtx */, const llvm::Instruction *I) {
