@@ -481,7 +481,7 @@ std::vector<Region> getRegions(const ThreadTrace &thread) {
       case End: {
         assert(start.has_value() && "encountered end type without a matching start type");
         regions.emplace_back(start.value(), event->getID());
-         // hack for kmpc_end_task showing 2ice, must be fixed in general
+        // hack for kmpc_end_task showing 2ice, must be fixed in general
         if (event->getIRInst()->type != IR::Type::OpenMPSingleEnd) {
           start.reset();
         }
