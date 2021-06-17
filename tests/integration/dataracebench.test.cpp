@@ -98,7 +98,7 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       Oracle("DRB048-firstprivate-orig-no.ll", {}),
       Oracle("DRB049-fprintf-orig-no.ll", {}),
       Oracle("DRB050-functionparameter-orig-no.ll", {}),
-      // 51 path based on get_thread_num
+      Oracle("DRB051-getthreadnum-orig-no.ll", {}),
       // 52 indirect array
       Oracle("DRB053-inneronly1-orig-no.ll", {}),  // multi-dimen array
       Oracle("DRB054-inneronly2-orig-no.ll", {}),  // multi-dimen array
@@ -119,7 +119,8 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 72 task
       // 73 Broken Debug Info
       // 74 critical and flush
-      // 75 path based on get_thread_num
+      Oracle("DRB075-getthreadnum-orig-yes.ll",
+             {"DRB075-getthreadnum-orig-yes.c:60:18 DRB075-getthreadnum-orig-yes.c:64:33"}),
       Oracle("DRB076-flush-orig-no.ll", {}),
       Oracle("DRB077-single-orig-no.ll", {}),
       // 78-79 task
@@ -199,7 +200,7 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 165-168 cannot be built
       // 169 multi-dimen array // Missed TP
       Oracle("DRB170-nestedloops-orig-no.ll", {}),
-      // 171 threadprivate // path condition
+      // 171 threadprivate // crash
       Oracle("DRB172-critical2-orig-no.ll", {}),
   };
 
