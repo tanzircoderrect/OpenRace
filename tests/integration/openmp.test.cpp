@@ -26,13 +26,13 @@ TEST_CASE("OpenMP Integration Tests", "[integration][omp]") {
                  "reduction-nowait-yes.c:16:27 reduction-nowait-yes.c:11:31",
              }),
       Oracle("master-used-after-yes.ll", {"master-used-after-yes.c:11:9 master-used-after-yes.c:14:22"}),
-      Oracle("single-message-printer.ll", 
-            {
-              "single-message-printer.c:11:14 single-message-printer.c:11:14",
-              "single-message-printer.c:11:14 single-message-printer.c:11:14",
-              "single-message-printer.c:18:15 single-message-printer.c:18:15",
-              "single-message-printer.c:18:15 single-message-printer.c:18:15",
-            }),
+      Oracle("single-message-printer.ll",
+             {
+                 "single-message-printer.c:11:14 single-message-printer.c:11:14",
+                 "single-message-printer.c:11:14 single-message-printer.c:11:14",
+                 "single-message-printer.c:18:15 single-message-printer.c:18:15",
+                 "single-message-printer.c:18:15 single-message-printer.c:18:15",
+             }),
       Oracle("single-used-after-no.ll", {}),
       Oracle("thread-sanitizer-falsepos.ll", {}),
       Oracle("sections-simple-no.ll", {}),
@@ -41,6 +41,8 @@ TEST_CASE("OpenMP Integration Tests", "[integration][omp]") {
       Oracle("sections-interproc-yes.ll", {"sections-interproc-yes.c:3:47 sections-interproc-yes.c:3:47",
                                            "sections-interproc-yes.c:3:47 sections-interproc-yes.c:3:47"}),
       Oracle("duplicate-omp-fork.ll", {}),
+      // Oracle("ordered-no.ll", {}), // need support for __kmpc_dispatch_init
+      // Oracle("ordered-yes.ll", {"ordered-yes.c:15:30 ordered-yes.c:15:30"}), // need support for __kmpc_dispatch_init
   };
 
   checkOracles(oracles, "integration/openmp/");
@@ -68,5 +70,18 @@ TEST_CASE("OpenMP Lock Tests", "[integration][omp]") {
              }),
 
       Oracle("lock-set-unset-yes-2.ll", {"lock-set-unset-yes-2.c:12:22 lock-set-unset-yes-2.c:12:22"})};
+  checkOracles(oracles, "integration/openmp/");
+}
+
+TEST_CASE("OpenMP get_thread_num", "[integration][omp]") {
+  std::vector<Oracle> oracles = {
+      Oracle("get-thread-num-no.ll", {}),
+      Oracle("get-thread-num-yes.ll", {"get-thread-num-yes.c:12:14 get-thread-num-yes.c:12:14",
+                                       "get-thread-num-yes.c:12:14 get-thread-num-yes.c:12:14"}),
+      // Oracle("get-thread-num-interproc-no.ll", {}), // cannot handle interproc yet
+      Oracle("get-thread-num-loop-no.ll", {}),
+      Oracle("get-thread-num-nested-branch-no.ll", {}),
+
+  };
   checkOracles(oracles, "integration/openmp/");
 }

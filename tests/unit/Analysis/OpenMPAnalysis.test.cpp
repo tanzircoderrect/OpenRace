@@ -22,7 +22,7 @@ limitations under the License.
 
 #include "Trace/ProgramTrace.h"
 
-TEST_CASE("OpenMP inSameTeam Analysis") {
+TEST_CASE("OpenMP fromSameParallelRegion Analysis") {
   const char *ModuleString = R"(
 %struct.ident_t = type { i32, i32, i32, i32, i8* }
 
@@ -77,7 +77,7 @@ declare void @__kmpc_fork_call(%struct.ident_t*, i32, void (i32*, i32*, ...)*, .
   }
 
   race::ProgramTrace program(module.get());
-  race::OpenMPAnalysis arrayIndexAnalysis;
+  race::OpenMPAnalysis arrayIndexAnalysis(program);
 
   auto const &threads = program.getThreads();
   REQUIRE(threads.size() == 5);
@@ -85,7 +85,7 @@ declare void @__kmpc_fork_call(%struct.ident_t*, i32, void (i32*, i32*, ...)*, .
   auto check_same_team = [&arrayIndexAnalysis](const race::ThreadTrace &t1, const race::ThreadTrace &t2) {
     for (auto const &e1 : t1.getEvents()) {
       for (auto const &e2 : t2.getEvents()) {
-        CHECK(arrayIndexAnalysis.inSameTeam(e1.get(), e2.get()));
+        CHECK(arrayIndexAnalysis.fromSameParallelRegion(e1.get(), e2.get()));
       }
     }
   };
@@ -93,7 +93,7 @@ declare void @__kmpc_fork_call(%struct.ident_t*, i32, void (i32*, i32*, ...)*, .
   auto check_not_same_team = [&arrayIndexAnalysis](const race::ThreadTrace &t1, const race::ThreadTrace &t2) {
     for (auto const &e1 : t1.getEvents()) {
       for (auto const &e2 : t2.getEvents()) {
-        CHECK_FALSE(arrayIndexAnalysis.inSameTeam(e1.get(), e2.get()));
+        CHECK_FALSE(arrayIndexAnalysis.fromSameParallelRegion(e1.get(), e2.get()));
       }
     }
   };
@@ -155,7 +155,7 @@ declare dso_local i32 @__kmpc_single(%struct.ident_t*, i32)
   }
 
   race::ProgramTrace program(module.get());
-  race::OpenMPAnalysis arrayIndexAnalysis;
+  race::OpenMPAnalysis arrayIndexAnalysis(program);
 
   auto const &threads = program.getThreads();
   REQUIRE(threads.size() == 3);

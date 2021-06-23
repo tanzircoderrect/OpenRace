@@ -278,6 +278,7 @@ using PthreadSpinLock = LockIRImpl<IR::Type::PthreadSpinLock>;
 
 // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L2549
 using OpenMPSetLock = LockIRImpl<IR::Type::OpenMPSetLock>;
+using OpenMPOrderedStart = LockIRImpl<IR::Type::OpenMPOrderedStart>;
 // ==================================================================
 // ================= UnlockIR Implementations =======================
 // ==================================================================
@@ -330,6 +331,7 @@ using PthreadSpinUnlock = UnlockIRImpl<IR::Type::PthreadSpinUnlock>;
 
 // https://github.com/llvm/llvm-project/blob/ef32c611aa214dea855364efd7ba451ec5ec3f74/openmp/runtime/src/kmp_csupport.cpp#L2752
 using OpenMPUnsetLock = UnlockIRImpl<IR::Type::OpenMPUnsetLock>;
+using OpenMPOrderedEnd = UnlockIRImpl<IR::Type::OpenMPOrderedEnd>;
 // =================================================================
 // ================= Barrier Implementations =======================
 // =================================================================
@@ -362,6 +364,10 @@ class CallIRImpl : public CallIR {
 using OmpForInit = CallIRImpl<IR::Type::OpenMPForInit>;
 using OmpForFini = CallIRImpl<IR::Type::OpenMPForFini>;
 
+using OmpDispatchInit = CallIRImpl<IR::Type::OpenMPDispatchInit>;
+using OmpDispatchNext = CallIRImpl<IR::Type::OpenMPDispatchNext>;
+using OmpDispatchFini = CallIRImpl<IR::Type::OpenMPDispatchFini>;
+
 using OpenMPSingleStart = CallIRImpl<IR::Type::OpenMPSingleStart>;
 using OpenMPSingleEnd = CallIRImpl<IR::Type::OpenMPSingleEnd>;
 
@@ -369,5 +375,9 @@ using OpenMPReduce = CallIRImpl<IR::Type::OpenMPReduce>;
 
 using OpenMPMasterStart = CallIRImpl<IR::Type::OpenMPMasterStart>;
 using OpenMPMasterEnd = CallIRImpl<IR::Type::OpenMPMasterEnd>;
+
 using OpenMPTaskAlloc = CallIRImpl<IR::Type::OpenMPTaskAlloc>;
+
+using OpenMPGetThreadNum = CallIRImpl<IR::Type::OpenMPGetThreadNum>;
+
 }  // namespace race

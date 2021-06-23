@@ -10,7 +10,8 @@ using namespace llvm;
 
 namespace {
 
-const llvm::GetElementPtrInst *getArrayAccess(const MemAccessEvent *event) {
+// this is more like "get def"/"get getelementptr", not all getelementptr is array-related
+const llvm::GetElementPtrInst *getGEP(const MemAccessEvent *event) {
   return llvm::dyn_cast<llvm::GetElementPtrInst>(event->getIRInst()->getAccessedValue()->stripPointerCasts());
 }
 
@@ -277,14 +278,20 @@ const SCEVAddRecExpr *OpenMPLoopManager::getOMPLoopSCEV(const llvm::SCEV *root) 
   return llvm::dyn_cast_or_null<llvm::SCEVAddRecExpr>(omp);
 }
 
-OpenMPAnalysis::OpenMPAnalysis() { PB.registerFunctionAnalyses(FAM); }
+OpenMPAnalysis::OpenMPAnalysis(const ProgramTrace &program) : getThreadNumAnalysis(program) {
+  PB.registerFunctionAnalyses(FAM);
+}
 
 bool OpenMPAnalysis::canIndexOverlap(const race::MemAccessEvent *event1, const race::MemAccessEvent *event2) {
-  auto gep1 = getArrayAccess(event1);
+  auto gep1 = getGEP(event1);
   if (!gep1) return false;
 
-  auto gep2 = getArrayAccess(event2);
+  auto gep2 = getGEP(event2);
   if (!gep2) return false;
+
+  if (!isArrayAccess(gep1) || !isArrayAccess(gep2)) {
+    return false;
+  }
 
   // should be in same function
   if (gep1->getFunction() != gep2->getFunction()) {
@@ -444,7 +451,7 @@ namespace {
 
 // return true if both events belong to the same OpenMP team
 // This function is split out so that it can be called from the template functions below (in, inSame, etc)
-bool _inSameTeam(const Event *event1, const Event *event2) {
+bool _fromSameParallelRegion(const Event *event1, const Event *event2) {
   // Check both spawn events are OpenMP forks
   auto e1Spawn = event1->getThread().spawnSite;
   if (!e1Spawn || (e1Spawn.value()->getIRInst()->type != IR::Type::OpenMPFork)) return false;
@@ -515,7 +522,7 @@ bool in(const race::Event *event) {
 // see getRegions for more detail on regions
 template <IR::Type Start, IR::Type End>
 bool inSame(const Event *event1, const Event *event2) {
-  assert(_inSameTeam(event1, event2) && "events must be in same omp team");
+  assert(_fromSameParallelRegion(event1, event2) && "events must be from same omp parallel region");
 
   auto const eid1 = event1->getID();
   auto const eid2 = event2->getID();
@@ -567,24 +574,51 @@ bool OpenMPAnalysis::inParallelFor(const race::MemAccessEvent *event) {
   return false;
 }
 
-bool OpenMPAnalysis::isLoopArrayAccess(const race::MemAccessEvent *event1, const race::MemAccessEvent *event2) {
-  auto gep1 = getArrayAccess(event1);
-  if (!gep1) return false;
+// refer to https://llvm.org/docs/GetElementPtr.html
+// an array access (load/store) is probably like this (the simplest case):
+//   %arrayidx4 = getelementptr inbounds [10 x i32], [10 x i32]* %3, i64 0, i64 %idxprom3, !dbg !67
+//   store i32 %add2, i32* %arrayidx4, align 4, !dbg !68, !tbaa !21
+// the ptr %arrayidx4 should come from an getelementptr with array type load ptr
+// HOWEVER, many "arrays" in C/C++ are actually pointers so that we cannot always confirm the array type,
+// e.g., DRB014-outofbounds-orig-yes.ll
+bool OpenMPAnalysis::isArrayAccess(const llvm::GetElementPtrInst *gep) {
+  // must be array type
+  bool isArray =
+      gep->getPointerOperand()->getType()->getPointerElementType()->isArrayTy();  // fixed array size, e.g., int A[100];
+  if (isArray || gep->getName().startswith(
+                     "arrayidx")) {  // array size is a var or user input, e.g., DRB014-outofbounds-orig-yes.ll
+    return true;
+  }
+  // must NOT be array type, e.g., DRB119-nestlock-orig-yes.ll
+  if (gep->getPointerOperand()->getType()->getPointerElementType()->isStructTy()) {  // a non array field of a
+                                                                                     // struct
+    return false;
+  }
 
-  auto gep2 = getArrayAccess(event2);
-  if (!gep2) return false;
-
-  return inParallelFor(event1) && inParallelFor(event2);
+  // others we cannot determine, assume they might be array type to be conservative
+  return true;
 }
 
-bool OpenMPAnalysis::inSameTeam(const Event *event1, const Event *event2) const { return _inSameTeam(event1, event2); }
+bool OpenMPAnalysis::isLoopArrayAccess(const race::MemAccessEvent *event1, const race::MemAccessEvent *event2) {
+  auto gep1 = getGEP(event1);
+  if (!gep1) return false;
+
+  auto gep2 = getGEP(event2);
+  if (!gep2) return false;
+
+  return isArrayAccess(gep1) && isArrayAccess(gep2) && inParallelFor(event1) && inParallelFor(event2);
+}
+
+bool OpenMPAnalysis::fromSameParallelRegion(const Event *event1, const Event *event2) const {
+  return _fromSameParallelRegion(event1, event2);
+}
 
 bool OpenMPAnalysis::inSameSingleBlock(const Event *event1, const Event *event2) const {
   return _inSameSingleBlock(event1, event2);
 }
 
 bool OpenMPAnalysis::bothInMasterBlock(const Event *event1, const Event *event2) const {
-  assert(_inSameTeam(event1, event2) && "events must be in same omp team");
+  assert(_fromSameParallelRegion(event1, event2) && "events must be from same omp parallel region");
   return _inMasterBlock(event1) && _inMasterBlock(event2);
 }
 
@@ -701,6 +735,148 @@ bool OpenMPAnalysis::inSameReduce(const Event *event1, const Event *event2) cons
 
   return false;
 }
+
+#include "IR/IR.h"
+#include "Trace/ProgramTrace.h"
+#include "Trace/ThreadTrace.h"
+
+namespace {
+
+// Get any cmp insts that use this value and compare against a constant integer
+// return list of pairs (cmp, c) where cmp is the cmpInst and c is the constant value compared against
+std::vector<std::pair<const llvm::CmpInst *, uint64_t>> getConstCmpInsts(const llvm::Value *value) {
+  std::vector<std::pair<const llvm::CmpInst *, uint64_t>> result;
+
+  for (auto const user : value->users()) {
+    auto cmp = llvm::dyn_cast<llvm::CmpInst>(user);
+    if (cmp == nullptr) continue;
+
+    if (cmp->getPredicate() != llvm::CmpInst::Predicate::ICMP_EQ) continue;
+
+    if (auto val = llvm::dyn_cast<llvm::ConstantInt>(cmp->getOperand(1))) {
+      result.emplace_back(cmp, val->getZExtValue());
+      continue;
+    }
+
+    if (auto val = llvm::dyn_cast<llvm::ConstantInt>(cmp->getOperand(0))) {
+      result.emplace_back(cmp, val->getZExtValue());
+      continue;
+    }
+  }
+
+  return result;
+}
+
+// Get list of blocks guarded by the true case of this branch.
+// Start by assuming the true block is guarded
+// Iterate from the true block until we find a block that has an unguarded predecessor
+// Cannot handle loops
+std::set<const llvm::BasicBlock *> getGuardedBlocks(const llvm::BranchInst *branchInst) {
+  // This branch should use a cmp eq instruction
+  // Otherwise the true/false blocks below may be wrong
+  assert(llvm::isa<llvm::CmpInst>(branchInst->getOperand(0)));
+  assert(llvm::cast<llvm::CmpInst>(branchInst->getOperand(0))->getPredicate() == llvm::CmpInst::Predicate::ICMP_EQ);
+
+  auto trueBlock = llvm::cast<llvm::BasicBlock>(branchInst->getOperand(2));
+  auto falseBlock = llvm::cast<llvm::BasicBlock>(branchInst->getOperand(1));
+
+  // This will be the returned result
+  std::set<const llvm::BasicBlock *> guardedBlocks;
+  guardedBlocks.insert(trueBlock);
+
+  std::set<const llvm::BasicBlock *> visited;
+  std::vector<const llvm::BasicBlock *> worklist;
+
+  visited.insert(trueBlock);
+  for (auto next : successors(trueBlock)) {
+    worklist.push_back(next);
+  }
+
+  do {
+    auto const currentBlock = worklist.back();
+    worklist.pop_back();
+
+    auto hasUnguardedPred = std::any_of(
+        pred_begin(currentBlock), pred_end(currentBlock),
+        [&guardedBlocks](const llvm::BasicBlock *pred) { return guardedBlocks.find(pred) == guardedBlocks.end(); });
+
+    if (hasUnguardedPred) continue;
+    visited.insert(currentBlock);
+
+    guardedBlocks.insert(currentBlock);
+
+    for (auto next : successors(currentBlock)) {
+      if (visited.find(next) == visited.end()) {
+        worklist.push_back(next);
+      }
+    }
+
+  } while (!worklist.empty());
+
+  return guardedBlocks;
+}
+
+}  // namespace
+
+void SimpleGetThreadNumAnalysis::computeGuardedBlocks(const Event *event) {
+  assert(event->getIRInst()->type == IR::Type::OpenMPGetThreadNum);
+  auto const func = event->getFunction();
+  // Check if we have already computed guardedBlocks for this LLVM function
+  if (visited.find(func) != visited.end()) return;
+
+  // Find all cmpInsts that compare the omp_get_thread_num call to a const value
+  auto const cmpInsts = getConstCmpInsts(event->getInst());
+  for (auto const &pair : cmpInsts) {
+    auto const cmpInst = pair.first;
+    auto const tid = pair.second;
+
+    // Find all branches that use the result of the cmp inst
+    for (auto user : cmpInst->users()) {
+      auto branch = llvm::dyn_cast<llvm::BranchInst>(user);
+      if (branch == nullptr) continue;
+
+      // Find all the blocks guarded by this branch
+      auto guarded = getGuardedBlocks(branch);
+
+      // insert the blocks into the guardedBlocks map
+      for (auto const block : guarded) {
+        guardedBlocks[block] = tid;
+      }
+    }
+  }
+
+  // Mark this function as visited
+  visited.insert(func);
+}
+
+std::optional<u_int64_t> SimpleGetThreadNumAnalysis::getGuardedBy(const Event *event) const {
+  // check if this event's block is guarded
+  auto guarded = guardedBlocks.find(event->getInst()->getParent());
+  if (guarded == guardedBlocks.end()) return std::nullopt;
+  return guarded->second;
+}
+
+SimpleGetThreadNumAnalysis::SimpleGetThreadNumAnalysis(const ProgramTrace &program) {
+  for (auto const &thread : program.getThreads()) {
+    for (auto const &event : thread->getEvents()) {
+      // Only care about get_thread_num calls
+      if (event->getIRInst()->type != IR::Type::OpenMPGetThreadNum) continue;
+      computeGuardedBlocks(event.get());
+    }
+  }
+}
+
+bool SimpleGetThreadNumAnalysis::guardedBySameTid(const Event *event1, const Event *event2) const {
+  auto tid1 = getGuardedBy(event1);
+  if (!tid1.has_value()) return false;
+
+  auto tid2 = getGuardedBy(event2);
+  if (!tid2.has_value()) return false;
+
+  return tid1.value() == tid2.value();
+}
+
+// void GetThreadNumAnalysis::doit(const ProgramTrace &program) {}
 
 bool OpenMPAnalysis::insideCompatibleSections(const Event *event1, const Event *event2) {
   // assertion: threads of the same team are identical

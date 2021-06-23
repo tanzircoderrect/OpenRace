@@ -28,7 +28,9 @@ using GT = llvm::GraphTraits<const CallGraph<ctx>>;
 using PtsTy = BitVectorPTS;
 
 class RaceModel : public LangModelBase<ctx, MemModel, PtsTy, RaceModel> {
-  GraphBLASHeapModel heapModel;
+ private:
+  DefaultHeapModel heapModel;
+
   using Super = LangModelBase<ctx, MemModel, PtsTy, RaceModel>;
 
   bool isInvokingAnOrigin(const originCtx *prevCtx, const llvm::Instruction *I);
