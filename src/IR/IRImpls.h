@@ -10,6 +10,7 @@ limitations under the License.
 ==============================================================================*/
 
 #pragma once
+#include <LanguageModel/OpenMP.h>
 #include <llvm/IR/CallSite.h>
 
 #include "IR/IR.h"
@@ -164,8 +165,8 @@ class OpenMPTask : public ForkIR {
   [[nodiscard]] const llvm::Value *getThreadEntry() const override {
     auto op = inst->getArgOperand(2)->stripPointerCasts();
     auto taskAlloc = llvm::dyn_cast<llvm::CallBase>(op);
-    if (!taskAlloc || !taskAlloc->getCalledFunction()->getName().equals("__kmpc_omp_task_alloc")) {
-      // LOG_DEBUG("Failed to find task function. inst={}", *taskCallSite.getInstruction());
+    if (!taskAlloc || !OpenMPModel::isTaskAlloc(taskAlloc->getCalledFunction()->getName())) {
+      llvm::errs() << "Failed to find task function. inst=" << toStringRef(taskAlloc) << "\n";
       return nullptr;
     }
     llvm::CallSite taskAllocCall(llvm::cast<llvm::Instruction>(op));

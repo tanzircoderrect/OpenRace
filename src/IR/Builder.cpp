@@ -155,14 +155,12 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
           instructions.push_back(std::make_shared<OpenMPSetLock>(callInst));
         } else if (OpenMPModel::isUnsetLock(funcName)) {
           instructions.push_back(std::make_shared<OpenMPUnsetLock>(callInst));
-<<<<<<< HEAD
         } else if (OpenMPModel::isTask(funcName)) {
           auto taskStart = std::make_shared<OpenMPTask>(callInst);
           instructions.push_back(taskStart);
           instructions.push_back(std::make_shared<OpenMPTaskJoin>(taskStart));
         } else if (OpenMPModel::isTaskAlloc(funcName)) {
           instructions.push_back(std::make_shared<OpenMPTaskAlloc>(callInst));
-=======
         } else if (OpenMPModel::isSetNestLock(funcName)) {
           instructions.push_back(std::make_shared<OpenMPSetLock>(callInst));
         } else if (OpenMPModel::isUnsetNestLock(funcName)) {
@@ -173,7 +171,6 @@ FunctionSummary race::generateFunctionSummary(const llvm::Function &func) {
           instructions.push_back(std::make_shared<OpenMPOrderedStart>(callInst));
         } else if (OpenMPModel::isOrderedEnd(funcName)) {
           instructions.push_back(std::make_shared<OpenMPOrderedEnd>(callInst));
->>>>>>> 829e28a7d2fc4d760c56b079423d12ae5b176879
         } else if (OpenMPModel::isFork(funcName)) {
           // duplicate omp preprocessing should duplicate all omp fork calls
           auto ompFork = std::make_shared<OpenMPFork>(callInst);
