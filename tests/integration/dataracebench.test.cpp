@@ -144,7 +144,12 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       Oracle("DRB087-static-data-member2-orig-yes.ll",
              {"DRB087-static-data-member2-orig-yes.cpp:74:13 DRB087-static-data-member2-orig-yes.cpp:74:13",
               "DRB087-static-data-member2-orig-yes.cpp:74:13 DRB087-static-data-member2-orig-yes.cpp:74:13"}),
-      // 88-89 PTA Fails ??
+      Oracle("DRB088-dynamic-storage-orig-yes.ll",
+             {"DRB088-dynamic-storage-orig-yes.c:63:14 DRB088-dynamic-storage-orig-yes.c:63:14",
+              "DRB088-dynamic-storage-orig-yes.c:63:14 DRB088-dynamic-storage-orig-yes.c:63:14"}),
+      Oracle("DRB089-dynamic-storage2-orig-yes.ll",
+             {"DRB089-dynamic-storage2-orig-yes.c:73:15 DRB089-dynamic-storage2-orig-yes.c:73:15",
+              "DRB089-dynamic-storage2-orig-yes.c:73:15 DRB089-dynamic-storage2-orig-yes.c:73:15"}),
       // 90 missed read-write race
       Oracle("DRB091-threadprivate2-orig-no.ll", {}),
       Oracle(
@@ -180,7 +185,9 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 115 simd
       // 116 target teams
       // 117 task
-      // 118-119 nest lock
+      Oracle("DRB118-nestlock-orig-no.ll", {}),
+      Oracle("DRB119-nestlock-orig-yes.ll", {"DRB119-nestlock-orig-yes.c:32:8 DRB119-nestlock-orig-yes.c:32:8",
+                                             "DRB119-nestlock-orig-yes.c:32:8 DRB119-nestlock-orig-yes.c:32:8"}),
       Oracle("DRB120-barrier-orig-no.ll", {}),
       Oracle("DRB121-reduction-orig-no.ll", {}),
       // 122-123 task
