@@ -309,11 +309,11 @@ class ConsGraphBuilder : public llvm::CtxInstVisitor<ctx, SubClass>, public PtrN
       const llvm::Argument *formal = &*fIt;
       // at least they should be pointer at the same time
       assert(formal->getType()->isPointerTy() == actual->getType()->isPointerTy());
-      if (actual->getType()->isPointerTy()) {
-        CGNodeTy *aNode = this->getPtrNode(caller->getContext(), actual);
+      if (actual->getType()->isPointerTy()) {  // why do we need the if after passing the assertion?
+        CGNodeTy *aNode = this->getOrCreatePtrNode(caller->getContext(), actual);
         // If the actual arguments passed to the resolved indirect call
         // site might be super nodes
-        auto fNode = this->getPtrNode(callee->getContext(), formal);
+        auto fNode = this->getOrCreatePtrNode(callee->getContext(), formal);
         // actual argument is assigned to the formal argument.
         this->consGraph->addConstraints(aNode, fNode, Constraints::copy);
       }
@@ -344,8 +344,8 @@ class ConsGraphBuilder : public llvm::CtxInstVisitor<ctx, SubClass>, public PtrN
     }
 
     if (callee->getFunction()->getReturnType()->isPointerTy() && callsite->getType()->isPointerTy()) {
-      auto src = this->getRetNode(callee->getContext(), callee->getFunction());
-      auto dst = this->getPtrNode(caller->getContext(), callsite);
+      auto src = this->getOrCreatePtrNode(callee->getContext(), callee->getFunction());
+      auto dst = this->getOrCreatePtrNode(caller->getContext(), callsite);
       consGraph->addConstraints(src, dst, Constraints::copy);
     }
   }
