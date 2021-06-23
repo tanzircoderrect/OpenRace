@@ -164,7 +164,7 @@ TEST_CASE("dataracebench", "[integration][dataracebench][omp]") {
       // 98 simd + collpase
       Oracle("DRB099-targetparallelfor2-orig-no.ll", {}),
       // 100-101 task
-      // 102 threadprivate + copyprivate => Oracle("DRB102-copyprivate-orig-no.ll", {}),
+      Oracle("DRB102-copyprivate-orig-no.ll", {}),
       Oracle("DRB103-master-orig-no.ll", {}),
       Oracle("DRB104-nowait-barrier-orig-no.ll", {}),
       // 105-107 task
